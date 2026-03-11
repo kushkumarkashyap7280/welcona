@@ -6,11 +6,17 @@ const SECRET = new TextEncoder().encode(
 );
 
 export const COOKIE_NAME = "welcona_token";
+export const SIGNUP_VERIFY_COOKIE_NAME = "welcona_signup_verify";
 
 export type SessionPayload = {
   sub: string; // userId
   email: string;
   role: "customer" | "admin";
+};
+
+export type SignupVerificationPayload = {
+  email: string;
+  purpose: "signup_email_verified";
 };
 
 export async function signToken(payload: SessionPayload): Promise<string> {
@@ -27,6 +33,31 @@ export async function verifyToken(
   try {
     const { payload } = await jwtVerify(token, SECRET);
     return payload as unknown as SessionPayload;
+  } catch {
+    return null;
+  }
+}
+
+export async function signSignupVerificationToken(
+  payload: SignupVerificationPayload
+): Promise<string> {
+  return new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("15m")
+    .sign(SECRET);
+}
+
+export async function verifySignupVerificationToken(
+  token: string
+): Promise<SignupVerificationPayload | null> {
+  try {
+    const { payload } = await jwtVerify(token, SECRET);
+    const parsed = payload as unknown as SignupVerificationPayload;
+    if (parsed?.purpose !== "signup_email_verified" || !parsed?.email) {
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }

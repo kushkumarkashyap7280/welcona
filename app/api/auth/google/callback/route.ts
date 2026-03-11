@@ -6,7 +6,7 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!;
 const GOOGLE_REDIRECT_URI =
   process.env.NODE_ENV === "production"
-    ? "https://welcona.com/api/auth/google/callback"
+    ? "https://welcona.vercel.app/api/auth/google/callback"
     : "http://localhost:3000/api/auth/google/callback";
 
 type GoogleTokenResponse = {

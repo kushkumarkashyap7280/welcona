@@ -1,4 +1,4 @@
-import { LoginClient } from "@/components/users/LoginClient";
+import { LoginForm } from "@/components/users/LoginForm";
 
 export const metadata = {
   title: "Sign In",
@@ -6,5 +6,5 @@ export const metadata = {
 };
 
 export default function LoginPage() {
-  return <LoginClient />;
+  return <LoginForm />;
 }

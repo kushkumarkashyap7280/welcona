@@ -6,7 +6,13 @@ import bcrypt from "bcrypt";
 import prisma from "@/lib/db";
 import redis from "@/lib/redis";
 import { sendOtpEmail } from "@/lib/email";
-import { signToken, COOKIE_NAME } from "@/lib/session";
+import {
+  signToken,
+  COOKIE_NAME,
+  SIGNUP_VERIFY_COOKIE_NAME,
+  signSignupVerificationToken,
+  verifySignupVerificationToken,
+} from "@/lib/session";
 
 // ─── Login (email + password) ───────────────────────────────────────────────
 
@@ -132,15 +138,28 @@ export async function verifyOtpAction(
   const cleanEmail = email.trim().toLowerCase();
   const otpKey = `otp:${cleanEmail}`;
 
-  const storedOtp = await redis.get<string>(otpKey);
+  const storedOtp = await redis.get(otpKey);
 
-  if (!storedOtp) {
+  const normalizeOtp = (value: unknown): string => {
+    if (typeof value === "string") return value;
+    if (typeof value === "number") return String(value);
+    if (value && typeof value === "object" && "otp" in value) {
+      const nestedOtp = (value as { otp?: unknown }).otp;
+      if (typeof nestedOtp === "string") return nestedOtp;
+      if (typeof nestedOtp === "number") return String(nestedOtp);
+    }
+    return "";
+  };
+
+  const storedOtpValue = normalizeOtp(storedOtp);
+
+  if (!storedOtpValue) {
     return { error: "Verification code expired. Please request a new one." };
   }
 
   // Robustly clean both strings just in case
-  const cleanStored = storedOtp.replace(/\D/g, "");
-  const cleanProvided = code.replace(/\D/g, "");
+  const cleanStored = storedOtpValue.replace(/\D/g, "");
+  const cleanProvided = String(code ?? "").replace(/\D/g, "");
 
   if (cleanStored !== cleanProvided) {
     return { error: "Invalid verification code." };
@@ -148,6 +167,21 @@ export async function verifyOtpAction(
 
   // Mark email as verified in Redis (15 min window to complete signup)
   await redis.set(`verified:${cleanEmail}`, "true", { ex: 900 });
+
+  // Issue short-lived browser proof for profile completion
+  const verifyToken = await signSignupVerificationToken({
+    email: cleanEmail,
+    purpose: "signup_email_verified",
+  });
+
+  const cookieStore = await cookies();
+  cookieStore.set(SIGNUP_VERIFY_COOKIE_NAME, verifyToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 15,
+    path: "/",
+  });
 
   // Clean up OTP key
   await redis.del(otpKey);
@@ -164,9 +198,32 @@ export async function completeSignupAction(data: {
 }): Promise<{ error?: string }> {
   const cleanEmail = data.email.trim().toLowerCase();
 
+  const cookieStore = await cookies();
+  const signupVerifyToken = cookieStore.get(SIGNUP_VERIFY_COOKIE_NAME)?.value;
+  if (!signupVerifyToken) {
+    return {
+      error:
+        "Verification expired. Please verify your email again before continuing.",
+    };
+  }
+
+  const verifiedPayload = await verifySignupVerificationToken(signupVerifyToken);
+  if (!verifiedPayload || verifiedPayload.email !== cleanEmail) {
+    return {
+      error:
+        "Verification mismatch. Please verify your email again and retry.",
+    };
+  }
+
   // Verify email was verified via OTP
-  const isVerified = await redis.get<string>(`verified:${cleanEmail}`);
-  if (isVerified !== "true") {
+  const verifiedState = await redis.get(`verified:${cleanEmail}`);
+  const isVerified =
+    verifiedState === "true" ||
+    verifiedState === true ||
+    verifiedState === 1 ||
+    verifiedState === "1";
+
+  if (!isVerified) {
     return { error: "Email not verified. Please verify your email first." };
   }
 
@@ -208,7 +265,6 @@ export async function completeSignupAction(data: {
     role: "customer",
   });
 
-  const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -216,6 +272,8 @@ export async function completeSignupAction(data: {
     maxAge: 60 * 60 * 24 * 7,
     path: "/",
   });
+
+  cookieStore.delete(SIGNUP_VERIFY_COOKIE_NAME);
 
   redirect("/dashboard");
 }

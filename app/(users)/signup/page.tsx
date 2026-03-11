@@ -1,10 +1,10 @@
-import { SignupClient } from "@/components/users/SignupClient";
+import { SignupWizard } from "@/components/users/SignupWizard";
 
 export const metadata = {
   title: "Sign Up",
-  description: "Create your Welcona account — premium bath fittings experience.",
+  description: "Create your Welcona account.",
 };
 
 export default function SignupPage() {
-  return <SignupClient />;
+  return <SignupWizard />;
 }

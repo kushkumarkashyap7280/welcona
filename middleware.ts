@@ -13,10 +13,6 @@ const AUTH_ONLY_ROUTES = ["/login", "/signup"];
 // Routes that require a logged-in customer session
 const PROTECTED_CUSTOMER_ROUTES = [
   "/dashboard",
-  "/cart",
-  "/orders",
-  "/details",
-  "/notifications",
 ];
 
 // Routes that require admin role

@@ -1,31 +1,16 @@
-import { getSessionUser } from "@/lib/session";
-import { UserPanelShell } from "@/components/users/UserPanelShell";
-import prisma from "@/lib/db";
-import type { SessionUser } from "@/components/providers/AuthProvider";
+import { SiteHeader } from "@/components/users/SiteHeader";
+import { SiteFooter } from "@/components/users/SiteFooter";
 
-export default async function UsersLayout({
+export default function UsersLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getSessionUser();
-  let user: SessionUser | null = null;
-
-  if (session) {
-    const dbUser = await prisma.user.findUnique({
-      where: { id: session.sub },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        avatarUrl: true,
-        verified: true,
-      },
-    });
-    if (dbUser) {
-      user = { ...dbUser, role: "customer" };
-    }
-  }
-
-  return <UserPanelShell user={user}>{children}</UserPanelShell>;
+  return (
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+      <main className="flex-1">{children}</main>
+      <SiteFooter />
+    </div>
+  );
 }

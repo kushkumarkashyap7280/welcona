@@ -1,5 +1,6 @@
-import { AdminPlaceholderClient } from "@/components/admin/AdminPlaceholderClient";
 
 export default function AdminPage() {
-  return <AdminPlaceholderClient />;
+  return <>
+  <h1>Admin</h1>
+  </>
 }
