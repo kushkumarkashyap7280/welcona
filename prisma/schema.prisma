@@ -17,6 +17,7 @@ model User {
   id        String    @id @default(uuid())
   verified  Boolean   @default(false)
   email     String    @unique
+  password  String?
   mobile    String    @unique
   googleId  String?   @unique
   avatarUrl String?
@@ -27,6 +28,17 @@ model User {
   ratings   Rating[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+}
+
+
+model Admin {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  avatarUrl String?
+  fullName  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Address {
