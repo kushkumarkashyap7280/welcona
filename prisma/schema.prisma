@@ -32,7 +32,7 @@ model User {
 model Address {
   id         String   @id @default(uuid())
   userId     String
-  user       User     @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   line1      String
   line2      String?
   city       String
@@ -70,7 +70,7 @@ model Product {
   wholesaleMinQuantity Int
   discount             Float?
   categoryId           String
-  category             Category    @relation(fields: [categoryId], references: [id])
+  category             Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   cartItems            CartItem[]
   orderItems           OrderItem[]
   ratings              Rating[]
@@ -82,7 +82,7 @@ model Product {
 model Rating {
   id        String   @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   productId String
   product   Product  @relation(fields: [productId], references: [id])
   rating    Int
@@ -94,7 +94,7 @@ model Rating {
 model Cart {
   id        String   @id @default(uuid())
   userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -104,7 +104,7 @@ model Cart {
 model CartItem {
   id        String   @id @default(uuid())
   cartId    String
-  cart      Cart     @relation(fields: [cartId], references: [id])
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
   productId String
   product   Product  @relation(fields: [productId], references: [id])
   quantity  Int
@@ -115,7 +115,7 @@ model CartItem {
 model Order {
   id              String        @id @default(uuid())
   userId          String
-  user            User          @relation(fields: [userId], references: [id])
+  user            User          @relation(fields: [userId], references: [id], onDelete: Restrict)
   total           Float
   paymentStatus   PaymentStatus @default(PENDING)
   // SNAPSHOT: Store the address as it was at the time of purchase
@@ -149,7 +149,7 @@ enum OrderStatus {
 model OrderItem {
   id        String   @id @default(uuid())
   orderId   String
-  order     Order    @relation(fields: [orderId], references: [id])
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId String
   product   Product  @relation(fields: [productId], references: [id])
   quantity  Int
