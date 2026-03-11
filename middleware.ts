@@ -32,7 +32,7 @@ export async function middleware(req: NextRequest) {
   if (token) {
     try {
       const { payload } = await jwtVerify(token, SECRET);
-      session = payload as unknown as typeof session;
+      session = payload as { sub: string; email: string; role: string };
     } catch {
       session = null;
     }
@@ -64,11 +64,11 @@ export async function middleware(req: NextRequest) {
 
   // Protect admin routes
   if (ADMIN_ROUTES.some((r) => pathname.startsWith(r))) {
-    if (!isAuthenticated || session?.role !== "admin") {
+    if (!session || session.role !== "admin") {
       return NextResponse.redirect(new URL("/login", req.url));
     }
     const response = NextResponse.next();
-    response.headers.set("x-user-id", session!.sub);
+    response.headers.set("x-user-id", session.sub);
     return response;
   }
 

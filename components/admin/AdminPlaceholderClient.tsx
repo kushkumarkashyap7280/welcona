@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 
 export function AdminPlaceholderClient() {
   const { isAuthenticated, user } = useAuth();
-  const hasAdminAccess = isAuthenticated && user?.role === "ADMIN";
+  const hasAdminAccess = isAuthenticated && user?.role === "admin";
 
   return (
     <SiteShell>
