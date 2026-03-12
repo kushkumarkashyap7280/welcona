@@ -1201,6 +1201,7 @@ export const UserScalarFieldEnum = {
   googleId: 'googleId',
   avatarUrl: 'avatarUrl',
   fullName: 'fullName',
+  blocked: 'blocked',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1211,6 +1212,7 @@ export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof User
 export const AdminScalarFieldEnum = {
   id: 'id',
   email: 'email',
+  role: 'role',
   password: 'password',
   avatarUrl: 'avatarUrl',
   fullName: 'fullName',
@@ -1413,6 +1415,20 @@ export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
  * Reference to a field of type 'DateTime[]'
  */
 export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+/**
+ * Reference to a field of type 'AdminRole'
+ */
+export type EnumAdminRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AdminRole'>
+    
+
+
+/**
+ * Reference to a field of type 'AdminRole[]'
+ */
+export type ListEnumAdminRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AdminRole[]'>
     
 
 

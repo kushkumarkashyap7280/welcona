@@ -81,7 +81,7 @@ export function SiteHeader() {
             <>
               {isAuthenticated ? (
                 <div className="hidden sm:flex items-center gap-1.5">
-                  <Link href="/dashboard">
+                  <Link href={user?.role === "admin" ? "/admin" : "/dashboard"}>
                     <Button variant="ghost" size="sm" className="gap-1.5 text-xs">
                       <LayoutDashboard className="size-3.5" />
                       <span className="hidden md:inline">Dashboard</span>
@@ -160,7 +160,7 @@ export function SiteHeader() {
                 {isAuthenticated ? (
                   <>
                     <Link
-                      href="/dashboard"
+                      href={user?.role === "admin" ? "/admin" : "/dashboard"}
                       className="px-3 py-2 text-sm font-medium rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                     >
                       Dashboard

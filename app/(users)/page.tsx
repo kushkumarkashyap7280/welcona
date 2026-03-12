@@ -1,11 +1,19 @@
 import Link from "next/link";
+import { getSessionUser } from "@/lib/session";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Home",
   description: "Luxury bath fittings crafted by Welcona.",
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await getSessionUser();
+  
+  if (session?.role === "admin") {
+    redirect("/admin");
+  }
+
   return (
     <section className="flex flex-col items-center justify-center px-5 py-28 md:py-40 text-center">
       <p className="text-xs tracking-[0.25em] text-primary uppercase font-medium mb-4">

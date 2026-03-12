@@ -25,6 +25,7 @@ model User {
   orders    Order[]
   cart      Cart?
   addresses Address[]
+  blocked   Boolean   @default(false)
   ratings   Rating[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -34,11 +35,17 @@ model User {
 model Admin {
   id        String   @id @default(uuid())
   email     String   @unique
+  role      AdminRole @default(ADMIN)
   password  String
   avatarUrl String?
   fullName  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
 }
 
 model Address {
