@@ -244,6 +244,7 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
     }
 
     toast.success("Added to cart");
+    window.dispatchEvent(new Event("cart-updated"));
   };
 
   if (query.isLoading) {
@@ -539,6 +540,7 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
                 productName={product.name}
                 open={reviewFormOpen}
                 onOpenChange={setReviewFormOpen}
+                onReviewSubmitted={query.refetch}
               />
             </div>
           ) : null}

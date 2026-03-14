@@ -27,6 +27,7 @@ model User {
   addresses Address[]
   blocked   Boolean   @default(false)
   ratings   Rating[]
+  notifications UserNotification[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
@@ -161,6 +162,10 @@ model Order {
   addressId String?
   address   Address? @relation(fields: [addressId], references: [id])
 
+  // Razorpay payment tracking
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+
   status     OrderStatus @default(PENDING)
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
@@ -174,6 +179,8 @@ enum PaymentMethod {
   CHEQUE
   BANK_TRANSFER
   CASH_ON_DELIVERY
+  UPI
+  NETBANKING
 }
 
 enum PaymentStatus {
@@ -201,5 +208,25 @@ model OrderItem {
   price     Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+
+model UserNotification {
+  id        String   @id @default(uuid())
+  userId    String
+  messageType NotificationType
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum NotificationType {
+  ORDER_UPDATE
+  PROMOTION
+  SYSTEM_ALERT
+  OFFER
 }
 

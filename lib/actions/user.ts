@@ -70,6 +70,8 @@ export async function getCartAction() {
               name: true,
               retailPrice: true,
               wholesalePrice: true,
+              wholesaleMinQuantity: true,
+              discount: true,
               images: true,
               sku: true,
               quantity: true,
@@ -81,6 +83,21 @@ export async function getCartAction() {
     },
   });
   return cart;
+}
+
+export async function getCartCountAction(): Promise<number> {
+  const session = await getSessionUser();
+  if (!session) return 0;
+
+  const cart = await prisma.cart.findUnique({
+    where: { userId: session.sub },
+    include: {
+      cartItems: { select: { quantity: true } },
+    },
+  });
+
+  if (!cart) return 0;
+  return cart.cartItems.reduce((sum, item) => sum + item.quantity, 0);
 }
 
 export async function addToCartAction(
@@ -156,7 +173,7 @@ export async function updateCartItemAction(
       data: { quantity },
     });
   }
-  revalidatePath("/cart");
+  revalidatePath("/dashboard/cart");
   return {};
 }
 
@@ -167,7 +184,7 @@ export async function removeCartItemAction(
   if (!session) return { error: "Not authenticated." };
 
   await prisma.cartItem.delete({ where: { id: cartItemId } });
-  revalidatePath("/cart");
+  revalidatePath("/dashboard/cart");
   return {};
 }
 
@@ -208,4 +225,179 @@ export async function getOrderAction(orderId: string) {
     },
   });
   return order;
+}
+
+// ─── Addresses ───────────────────────────────────────────────────────────────
+
+export async function getAddressesAction() {
+  const session = await getSessionUser();
+  if (!session) return [];
+
+  return prisma.address.findMany({
+    where: { userId: session.sub },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export type AddressInput = {
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+};
+
+export async function createAddressAction(
+  input: AddressInput
+): Promise<{ error?: string; address?: { id: string } }> {
+  const session = await getSessionUser();
+  if (!session) return { error: "Not authenticated." };
+
+  const address = await prisma.address.create({
+    data: {
+      userId: session.sub,
+      line1: input.line1,
+      line2: input.line2 || null,
+      city: input.city,
+      state: input.state,
+      postalCode: input.postalCode,
+      country: input.country,
+    },
+    select: { id: true },
+  });
+
+  return { address };
+}
+
+// ─── Checkout / Place Order ─────────────────────────────────────────────────
+
+export type PlaceOrderInput = {
+  addressId: string;
+  paymentMethod: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+};
+
+export async function placeOrderAction(
+  input: PlaceOrderInput
+): Promise<{ error?: string; orderId?: string }> {
+  const session = await getSessionUser();
+  if (!session) return { error: "Not authenticated." };
+
+  // Get user's cart
+  const cart = await prisma.cart.findUnique({
+    where: { userId: session.sub },
+    include: {
+      cartItems: {
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              retailPrice: true,
+              wholesalePrice: true,
+              wholesaleMinQuantity: true,
+              discount: true,
+              quantity: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!cart || cart.cartItems.length === 0) {
+    return { error: "Your cart is empty." };
+  }
+
+  // Validate address
+  const address = await prisma.address.findFirst({
+    where: { id: input.addressId, userId: session.sub },
+  });
+
+  if (!address) {
+    return { error: "Address not found." };
+  }
+
+  // Calculate totals with wholesale pricing logic
+  let total = 0;
+  const orderItemsData: { productId: string; quantity: number; price: number }[] = [];
+
+  for (const item of cart.cartItems) {
+    const product = item.product;
+
+    // Check stock
+    if (item.quantity > product.quantity) {
+      return {
+        error: `Not enough stock for "${product.name}". Available: ${product.quantity}`,
+      };
+    }
+
+    // Determine unit price: wholesale if quantity meets minimum, else retail
+    let unitPrice = product.retailPrice;
+    if (item.quantity >= product.wholesaleMinQuantity) {
+      unitPrice = product.wholesalePrice;
+    }
+
+    // Apply discount if available
+    if (product.discount) {
+      unitPrice = unitPrice * (1 - product.discount / 100);
+    }
+
+    const lineTotal = unitPrice * item.quantity;
+    total += lineTotal;
+
+    orderItemsData.push({
+      productId: product.id,
+      quantity: item.quantity,
+      price: unitPrice,
+    });
+  }
+
+  // Determine payment status based on method
+  const isCOD = input.paymentMethod === "CASH_ON_DELIVERY";
+  const paymentStatus = isCOD ? "PENDING" : "COMPLETED";
+
+  // Create order
+  const order = await prisma.order.create({
+    data: {
+      userId: session.sub,
+      total: Math.round(total * 100) / 100,
+      paymentMethod: input.paymentMethod as any,
+      paymentStatus: paymentStatus as any,
+      status: "CONFIRMED",
+      addressId: address.id,
+      shippingAddress: {
+        line1: address.line1,
+        line2: address.line2,
+        city: address.city,
+        state: address.state,
+        postalCode: address.postalCode,
+        country: address.country,
+      },
+      razorpayOrderId: input.razorpayOrderId || null,
+      razorpayPaymentId: input.razorpayPaymentId || null,
+      orderItems: {
+        create: orderItemsData,
+      },
+    },
+    select: { id: true },
+  });
+
+  // Reduce product stock
+  for (const item of cart.cartItems) {
+    await prisma.product.update({
+      where: { id: item.product.id },
+      data: { quantity: { decrement: item.quantity } },
+    });
+  }
+
+  // Clear cart
+  await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+
+  revalidatePath("/dashboard/cart");
+  revalidatePath("/dashboard/orders");
+
+  return { orderId: order.id };
 }

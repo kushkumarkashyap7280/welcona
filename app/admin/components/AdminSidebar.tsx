@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  Package, 
-  Tags, 
-  Users, 
+import {
+  LayoutDashboard,
+  Package,
+  Tags,
+  Users,
   LogOut,
-  Settings
+  Settings,
+  ShoppingBag,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { name: "Products", href: "/admin/products", icon: Package },
+  { name: "Orders", href: "/admin/orders", icon: ShoppingBag },
   { name: "Categories", href: "/admin/categories", icon: Tags },
   { name: "Admins", href: "/admin/admins", icon: Users },
 ];
@@ -26,9 +28,9 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="hidden border-r bg-background md:block w-64 min-h-screen flex-shrink-0">
+    <div className="hidden border-r bg-background md:block w-64 min-h-screen shrink-0">
       <div className="flex h-full max-h-screen flex-col gap-2">
-        <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+        <div className="flex h-14 items-center border-b px-4 lg:h-15 lg:px-6">
           <Link href="/admin" className="flex items-center gap-2 font-semibold tracking-wider text-xl uppercase text-primary">
             <Settings className="h-5 w-5" />
             <span>Welcona Admin</span>

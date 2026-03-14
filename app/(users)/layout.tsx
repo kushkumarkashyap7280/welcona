@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { SiteHeader } from "@/components/users/SiteHeader";
 import { SiteFooter } from "@/components/users/SiteFooter";
+import { CartIndicator } from "@/components/users/CartIndicator";
 
 export default function UsersLayout({
   children,
@@ -17,6 +18,7 @@ export default function UsersLayout({
       <SiteHeader />
       <main className="flex-1">{children}</main>
       {!isDashboard && <SiteFooter />}
+      {!isDashboard && <CartIndicator />}
     </div>
   );
 }

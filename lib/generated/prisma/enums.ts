@@ -23,7 +23,9 @@ export const PaymentMethod = {
   PAYPAL: 'PAYPAL',
   CHEQUE: 'CHEQUE',
   BANK_TRANSFER: 'BANK_TRANSFER',
-  CASH_ON_DELIVERY: 'CASH_ON_DELIVERY'
+  CASH_ON_DELIVERY: 'CASH_ON_DELIVERY',
+  UPI: 'UPI',
+  NETBANKING: 'NETBANKING'
 } as const
 
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod]
@@ -48,3 +50,13 @@ export const OrderStatus = {
 } as const
 
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus]
+
+
+export const NotificationType = {
+  ORDER_UPDATE: 'ORDER_UPDATE',
+  PROMOTION: 'PROMOTION',
+  SYSTEM_ALERT: 'SYSTEM_ALERT',
+  OFFER: 'OFFER'
+} as const
+
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
