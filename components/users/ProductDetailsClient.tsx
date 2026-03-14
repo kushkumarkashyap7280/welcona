@@ -23,6 +23,9 @@ import { AuthRequiredModal } from "@/components/users/AuthRequiredModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProductImage } from "@/components/ui/product-image";
+import { ReviewsDisplay } from "./ReviewsDisplay";
+import { ReviewForm } from "./ReviewForm";
 import { cn } from "@/lib/utils";
 
 type ProductDetails = {
@@ -53,7 +56,11 @@ type ProductDetails = {
     id: string;
     rating: number;
     review: string | null;
+    imageUrl: string | null;
+    videoUrl: string | null;
+    createdAt: string;
     user: {
+      id: string;
       fullName: string | null;
     };
   }[];
@@ -66,6 +73,9 @@ type RelatedProduct = {
   name: string;
   retailPrice: number;
   discount: number | null;
+  tags: string[];
+  reviewCount: number;
+  avgRating: number;
   images: {
     id: string;
     image: string;
@@ -113,12 +123,36 @@ async function fetchProductDetails(id: string) {
   return (await response.json()) as ProductDetailsResponse;
 }
 
+async function fetchSimilarProducts(
+  productId: string,
+  categoryId: string,
+  tags: string[]
+) {
+  const response = await fetch("/api/products/similar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      productId,
+      categoryId,
+      tags,
+      limit: 4,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to load similar products");
+  }
+
+  return response.json();
+}
+
 export function ProductDetailsClient({ productId }: { productId: string }) {
   const { isAuthenticated, user } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState<DetailTab>("overview");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const query = useQuery({
@@ -127,7 +161,28 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
   });
 
   const product = query.data?.product;
-  const relatedProducts = query.data?.related ?? [];
+
+  // Fetch similar products
+  const similarProductsQuery = useQuery({
+    queryKey: ["similar-products", productId, product?.category.id, product?.tags],
+    queryFn: () =>
+      product
+        ? fetchSimilarProducts(productId, product.category.id, product.tags)
+        : Promise.resolve({ products: [] }),
+    enabled: !!product,
+  });
+
+  // Extract related products - prioritize similar products API, fallback to API response
+  const relatedProducts = useMemo(
+    () => similarProductsQuery.data?.products ?? query.data?.related ?? [],
+    [similarProductsQuery.data, query.data]
+  );
+
+  // Check if user has already reviewed this product
+  const userHasReviewed = useMemo(() => {
+    if (!isAuthenticated || !user || !product) return false;
+    return product.ratings.some((rating: any) => rating.user.id === user.id);
+  }, [isAuthenticated, user, product]);
 
   const orderedImages = useMemo(
     () =>
@@ -223,7 +278,12 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
           <div className="space-y-4">
             <div className="relative overflow-hidden rounded-[2rem] border border-border/70 bg-card/90 shadow-sm">
               {activeImage ? (
-                <img src={activeImage.image} alt={product.name} className="h-105 w-full object-cover md:h-140" />
+                <ProductImage
+                  src={activeImage.image}
+                  alt={product.name}
+                  className="h-105 w-full object-cover md:h-140"
+                  fallbackSize="lg"
+                />
               ) : (
                 <div className="flex h-105 items-center justify-center text-sm text-muted-foreground md:h-140">
                   No image available
@@ -269,7 +329,12 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
                     index === activeImageIndex && "ring-2 ring-primary"
                   )}
                 >
-                  <img src={image.image} alt={product.name} className="h-24 w-full object-cover md:h-28" />
+                  <ProductImage
+                    src={image.image}
+                    alt={product.name}
+                    className="h-24 w-full object-cover md:h-28"
+                    fallbackSize="sm"
+                  />
                 </button>
               ))}
             </div>
@@ -442,34 +507,51 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
           ) : null}
 
           {selectedTab === "reviews" ? (
-            product.ratings.length > 0 ? (
-              <div className="grid gap-4 lg:grid-cols-2">
-                {product.ratings.map((entry) => (
-                  <div key={entry.id} className="rounded-[1.5rem] border border-border/70 bg-background/70 p-5">
-                    <div className="flex items-center justify-between gap-4">
-                      <p className="font-medium">{entry.user.fullName || "Verified customer"}</p>
-                      <StarRating rating={entry.rating} />
-                    </div>
-                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                      {entry.review || "Customer review text will appear here once added."}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-[1.5rem] border border-dashed border-border/70 bg-background/60 px-6 py-12 text-center">
-                <p className="text-lg font-semibold">No reviews yet</p>
-                <p className="mt-2 text-sm text-muted-foreground">Ratings and written reviews will appear here as customers start buying and reviewing this product.</p>
-              </div>
-            )
+            <div className="space-y-6">
+              {/* Write Review Section */}
+              {isAuthenticated && !userHasReviewed && (
+                <div className="rounded-[1.5rem] border border-border/70 bg-card/90 p-6 text-center">
+                  <h3 className="text-lg font-semibold mb-2">Share Your Experience</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Help other customers by writing a review about this product
+                  </p>
+                  <Button
+                    onClick={() => setReviewFormOpen(true)}
+                    className="rounded-full"
+                  >
+                    Write a Review
+                  </Button>
+                </div>
+              )}
+
+              {/* Reviews Display */}
+              <ReviewsDisplay
+                reviews={product.ratings}
+                productId={productId}
+                productName={product.name}
+                currentUserId={user?.id}
+                onReviewUpdate={query.refetch}
+              />
+
+              {/* Review Form */}
+              <ReviewForm
+                productId={productId}
+                productName={product.name}
+                open={reviewFormOpen}
+                onOpenChange={setReviewFormOpen}
+              />
+            </div>
           ) : null}
         </div>
 
         {relatedProducts.length > 0 ? (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold tracking-tight">Related Products</h2>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {relatedProducts.map((related) => {
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight">Related Products</h2>
+              <p className="text-sm text-muted-foreground mt-1">Based on tags and category</p>
+            </div>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {relatedProducts.map((related: RelatedProduct) => {
                 const image = related.images.find((entry) => entry.isPrimary) ?? related.images[0];
                 const relatedPrice = related.discount
                   ? related.retailPrice * (1 - related.discount / 100)
@@ -479,16 +561,70 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
                   <Link
                     key={related.id}
                     href={`/products/${related.id}`}
-                    className="overflow-hidden rounded-[1.25rem] border border-border/70 bg-card/85 transition hover:-translate-y-1 hover:shadow-md"
+                    className="overflow-hidden rounded-[1.25rem] border border-border/70 bg-card/85 transition hover:-translate-y-1 hover:shadow-md group"
                   >
-                    <div className="h-44 bg-muted">
+                    <div className="relative h-48 bg-muted overflow-hidden">
                       {image ? (
-                        <img src={image.image} alt={related.name} className="h-full w-full object-cover" />
+                        <ProductImage
+                          src={image.image}
+                          alt={related.name}
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          fallbackSize="md"
+                        />
                       ) : null}
+                      {related.discount && (
+                        <div className="absolute top-3 right-3 bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                          -{related.discount}%
+                        </div>
+                      )}
                     </div>
-                    <div className="space-y-2 p-4">
-                      <p className="font-medium">{related.name}</p>
-                      <p className="text-sm text-muted-foreground">{formatPrice(relatedPrice)}</p>
+                    <div className="space-y-3 p-4">
+                      <p className="font-medium line-clamp-2 group-hover:text-primary transition-colors">{related.name}</p>
+
+                      {/* Rating */}
+                      {related.reviewCount > 0 && (
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-0.5">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`w-3 h-3 ${
+                                  i < Math.round(related.avgRating)
+                                    ? "fill-yellow-400 text-yellow-400"
+                                    : "text-muted-foreground"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            ({related.reviewCount})
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Pricing */}
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold">{formatPrice(relatedPrice)}</p>
+                        {related.discount && (
+                          <p className="text-xs text-muted-foreground line-through">{formatPrice(related.retailPrice)}</p>
+                        )}
+                      </div>
+
+                      {/* Tags */}
+                      {related.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {related.tags.slice(0, 2).map((tag) => (
+                            <Badge key={tag} variant="secondary" className="text-[10px] px-2 py-0.5">
+                              {tag}
+                            </Badge>
+                          ))}
+                          {related.tags.length > 2 && (
+                            <Badge variant="outline" className="text-[10px] px-2 py-0.5">
+                              +{related.tags.length - 2}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </Link>
                 );

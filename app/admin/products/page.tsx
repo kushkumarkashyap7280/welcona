@@ -9,16 +9,7 @@ export default async function ProductsPage() {
     redirect("/");
   }
 
-  const products = await prisma.product.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      category: { select: { id: true, name: true } },
-      images: {
-        orderBy: [{ isPrimary: "desc" }, { index: "asc" }, { createdAt: "asc" }],
-      },
-    }
-  });
-
+  // Only fetch categories server-side for form validation
   const categories = await prisma.category.findMany({
     orderBy: { name: "asc" },
     select: { id: true, name: true }
@@ -26,7 +17,7 @@ export default async function ProductsPage() {
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
-      <ProductClient data={products} categories={categories} />
+      <ProductClient categories={categories} />
     </div>
   );
 }

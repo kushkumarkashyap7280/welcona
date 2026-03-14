@@ -181,6 +181,8 @@ export const RatingScalarFieldEnum = {
   productId: 'productId',
   rating: 'rating',
   review: 'review',
+  imageUrl: 'imageUrl',
+  videoUrl: 'videoUrl',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

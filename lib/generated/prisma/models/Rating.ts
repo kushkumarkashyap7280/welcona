@@ -40,6 +40,8 @@ export type RatingMinAggregateOutputType = {
   productId: string | null
   rating: number | null
   review: string | null
+  imageUrl: string | null
+  videoUrl: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -50,6 +52,8 @@ export type RatingMaxAggregateOutputType = {
   productId: string | null
   rating: number | null
   review: string | null
+  imageUrl: string | null
+  videoUrl: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -60,6 +64,8 @@ export type RatingCountAggregateOutputType = {
   productId: number
   rating: number
   review: number
+  imageUrl: number
+  videoUrl: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -80,6 +86,8 @@ export type RatingMinAggregateInputType = {
   productId?: true
   rating?: true
   review?: true
+  imageUrl?: true
+  videoUrl?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -90,6 +98,8 @@ export type RatingMaxAggregateInputType = {
   productId?: true
   rating?: true
   review?: true
+  imageUrl?: true
+  videoUrl?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -100,6 +110,8 @@ export type RatingCountAggregateInputType = {
   productId?: true
   rating?: true
   review?: true
+  imageUrl?: true
+  videoUrl?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -197,6 +209,8 @@ export type RatingGroupByOutputType = {
   productId: string
   rating: number
   review: string | null
+  imageUrl: string | null
+  videoUrl: string | null
   createdAt: Date
   updatedAt: Date
   _count: RatingCountAggregateOutputType | null
@@ -230,6 +244,8 @@ export type RatingWhereInput = {
   productId?: Prisma.StringFilter<"Rating"> | string
   rating?: Prisma.IntFilter<"Rating"> | number
   review?: Prisma.StringNullableFilter<"Rating"> | string | null
+  imageUrl?: Prisma.StringNullableFilter<"Rating"> | string | null
+  videoUrl?: Prisma.StringNullableFilter<"Rating"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Rating"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Rating"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -242,6 +258,8 @@ export type RatingOrderByWithRelationInput = {
   productId?: Prisma.SortOrder
   rating?: Prisma.SortOrder
   review?: Prisma.SortOrderInput | Prisma.SortOrder
+  imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  videoUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -257,6 +275,8 @@ export type RatingWhereUniqueInput = Prisma.AtLeast<{
   productId?: Prisma.StringFilter<"Rating"> | string
   rating?: Prisma.IntFilter<"Rating"> | number
   review?: Prisma.StringNullableFilter<"Rating"> | string | null
+  imageUrl?: Prisma.StringNullableFilter<"Rating"> | string | null
+  videoUrl?: Prisma.StringNullableFilter<"Rating"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Rating"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Rating"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -269,6 +289,8 @@ export type RatingOrderByWithAggregationInput = {
   productId?: Prisma.SortOrder
   rating?: Prisma.SortOrder
   review?: Prisma.SortOrderInput | Prisma.SortOrder
+  imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  videoUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.RatingCountOrderByAggregateInput
@@ -287,6 +309,8 @@ export type RatingScalarWhereWithAggregatesInput = {
   productId?: Prisma.StringWithAggregatesFilter<"Rating"> | string
   rating?: Prisma.IntWithAggregatesFilter<"Rating"> | number
   review?: Prisma.StringNullableWithAggregatesFilter<"Rating"> | string | null
+  imageUrl?: Prisma.StringNullableWithAggregatesFilter<"Rating"> | string | null
+  videoUrl?: Prisma.StringNullableWithAggregatesFilter<"Rating"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Rating"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Rating"> | Date | string
 }
@@ -295,6 +319,8 @@ export type RatingCreateInput = {
   id?: string
   rating: number
   review?: string | null
+  imageUrl?: string | null
+  videoUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutRatingsInput
@@ -307,6 +333,8 @@ export type RatingUncheckedCreateInput = {
   productId: string
   rating: number
   review?: string | null
+  imageUrl?: string | null
+  videoUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -315,6 +343,8 @@ export type RatingUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutRatingsNestedInput
@@ -327,6 +357,8 @@ export type RatingUncheckedUpdateInput = {
   productId?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -337,6 +369,8 @@ export type RatingCreateManyInput = {
   productId: string
   rating: number
   review?: string | null
+  imageUrl?: string | null
+  videoUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -345,6 +379,8 @@ export type RatingUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -355,6 +391,8 @@ export type RatingUncheckedUpdateManyInput = {
   productId?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -375,6 +413,8 @@ export type RatingCountOrderByAggregateInput = {
   productId?: Prisma.SortOrder
   rating?: Prisma.SortOrder
   review?: Prisma.SortOrder
+  imageUrl?: Prisma.SortOrder
+  videoUrl?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -389,6 +429,8 @@ export type RatingMaxOrderByAggregateInput = {
   productId?: Prisma.SortOrder
   rating?: Prisma.SortOrder
   review?: Prisma.SortOrder
+  imageUrl?: Prisma.SortOrder
+  videoUrl?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -399,6 +441,8 @@ export type RatingMinOrderByAggregateInput = {
   productId?: Prisma.SortOrder
   rating?: Prisma.SortOrder
   review?: Prisma.SortOrder
+  imageUrl?: Prisma.SortOrder
+  videoUrl?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -495,6 +539,8 @@ export type RatingCreateWithoutUserInput = {
   id?: string
   rating: number
   review?: string | null
+  imageUrl?: string | null
+  videoUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   product: Prisma.ProductCreateNestedOneWithoutRatingsInput
@@ -505,6 +551,8 @@ export type RatingUncheckedCreateWithoutUserInput = {
   productId: string
   rating: number
   review?: string | null
+  imageUrl?: string | null
+  videoUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -544,6 +592,8 @@ export type RatingScalarWhereInput = {
   productId?: Prisma.StringFilter<"Rating"> | string
   rating?: Prisma.IntFilter<"Rating"> | number
   review?: Prisma.StringNullableFilter<"Rating"> | string | null
+  imageUrl?: Prisma.StringNullableFilter<"Rating"> | string | null
+  videoUrl?: Prisma.StringNullableFilter<"Rating"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Rating"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Rating"> | Date | string
 }
@@ -552,6 +602,8 @@ export type RatingCreateWithoutProductInput = {
   id?: string
   rating: number
   review?: string | null
+  imageUrl?: string | null
+  videoUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutRatingsInput
@@ -562,6 +614,8 @@ export type RatingUncheckedCreateWithoutProductInput = {
   userId: string
   rating: number
   review?: string | null
+  imageUrl?: string | null
+  videoUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -597,6 +651,8 @@ export type RatingCreateManyUserInput = {
   productId: string
   rating: number
   review?: string | null
+  imageUrl?: string | null
+  videoUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -605,6 +661,8 @@ export type RatingUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   product?: Prisma.ProductUpdateOneRequiredWithoutRatingsNestedInput
@@ -615,6 +673,8 @@ export type RatingUncheckedUpdateWithoutUserInput = {
   productId?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -624,6 +684,8 @@ export type RatingUncheckedUpdateManyWithoutUserInput = {
   productId?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -633,6 +695,8 @@ export type RatingCreateManyProductInput = {
   userId: string
   rating: number
   review?: string | null
+  imageUrl?: string | null
+  videoUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -641,6 +705,8 @@ export type RatingUpdateWithoutProductInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutRatingsNestedInput
@@ -651,6 +717,8 @@ export type RatingUncheckedUpdateWithoutProductInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -660,6 +728,8 @@ export type RatingUncheckedUpdateManyWithoutProductInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -672,6 +742,8 @@ export type RatingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   productId?: boolean
   rating?: boolean
   review?: boolean
+  imageUrl?: boolean
+  videoUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -684,6 +756,8 @@ export type RatingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   productId?: boolean
   rating?: boolean
   review?: boolean
+  imageUrl?: boolean
+  videoUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -696,6 +770,8 @@ export type RatingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   productId?: boolean
   rating?: boolean
   review?: boolean
+  imageUrl?: boolean
+  videoUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -708,11 +784,13 @@ export type RatingSelectScalar = {
   productId?: boolean
   rating?: boolean
   review?: boolean
+  imageUrl?: boolean
+  videoUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type RatingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "productId" | "rating" | "review" | "createdAt" | "updatedAt", ExtArgs["result"]["rating"]>
+export type RatingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "productId" | "rating" | "review" | "imageUrl" | "videoUrl" | "createdAt" | "updatedAt", ExtArgs["result"]["rating"]>
 export type RatingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
@@ -738,6 +816,8 @@ export type $RatingPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     productId: string
     rating: number
     review: string | null
+    imageUrl: string | null
+    videoUrl: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["rating"]>
@@ -1170,6 +1250,8 @@ export interface RatingFieldRefs {
   readonly productId: Prisma.FieldRef<"Rating", 'String'>
   readonly rating: Prisma.FieldRef<"Rating", 'Int'>
   readonly review: Prisma.FieldRef<"Rating", 'String'>
+  readonly imageUrl: Prisma.FieldRef<"Rating", 'String'>
+  readonly videoUrl: Prisma.FieldRef<"Rating", 'String'>
   readonly createdAt: Prisma.FieldRef<"Rating", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Rating", 'DateTime'>
 }

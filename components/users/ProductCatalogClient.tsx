@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ProductImage } from "@/components/ui/product-image";
 
 type CatalogItem = {
   id: string;
@@ -250,10 +251,11 @@ export function ProductCatalogClient() {
                 >
                   <div className="relative h-72 overflow-hidden bg-muted">
                     {primaryImage ? (
-                      <img
+                      <ProductImage
                         src={primaryImage.image}
                         alt={product.name}
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                        fallbackSize="lg"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No image</div>

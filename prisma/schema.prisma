@@ -120,6 +120,8 @@ model Rating {
   product   Product  @relation(fields: [productId], references: [id])
   rating    Int
   review    String?
+  imageUrl  String?  // Optional image attachment URL
+  videoUrl  String?  // Optional video attachment URL
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
