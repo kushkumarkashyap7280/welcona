@@ -99,11 +99,16 @@ export async function sendOtpAction(
   // Check if user already exists with a password (suggest login instead)
   const existingUser = await prisma.user.findUnique({
     where: { email: cleanEmail },
-    select: { password: true, googleId: true },
+    select: {password: true, googleId: true },
   });
-  if (existingUser?.password) {
+  if (existingUser) {
+     if(!existingUser.password && existingUser.googleId) {
+      return {
+        error: "An account with this email exists via Google. Please login with Google.",
+      };
+     }
     return {
-      error: "An account with this email already exists. Please login instead.",
+      error: "An account with this email already exists. Please login instead using email and password ",
     };
   }
 
