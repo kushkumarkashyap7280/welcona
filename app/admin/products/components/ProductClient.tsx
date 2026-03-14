@@ -1,12 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Product } from "@/lib/generated/prisma/client";
 import { Plus, Edit, Trash, Package } from "lucide-react";
 import { toast } from "sonner";
-import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -20,8 +20,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteProductAction } from "@/lib/actions/products";
 import { ProductFormDialog } from "./ProductFormDialog";
 
-type ProductWithCategory = Product & {
+type ProductWithCategory = {
+  id: string;
+  name: string;
+  sku: string;
+  categoryId: string;
+  quantity: number;
+  retailPrice: number;
+  wholesalePrice: number;
+  wholesaleMinQuantity: number;
+  discount: number | null;
+  description: string | null;
+  warranty: string | null;
+  finish: string | null;
+  material: string | null;
+  tags: string[];
   category: { id: string; name: string };
+  images: {
+    id: string;
+    image: string;
+    detail: string | null;
+    isPrimary: boolean;
+    index: number;
+  }[];
 };
 
 interface ProductClientProps {
@@ -33,6 +54,7 @@ export function ProductClient({ data, categories }: ProductClientProps) {
   const [open, setOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductWithCategory | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const hasCategories = categories.length > 0;
 
   const filteredData = data.filter((item) =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -59,13 +81,32 @@ export function ProductClient({ data, categories }: ProductClientProps) {
             Manage your inventory, pricing, and product details.
           </p>
         </div>
-        <Button onClick={() => {
-          setEditingProduct(null);
-          setOpen(true);
-        }}>
+        <Button
+          disabled={!hasCategories}
+          onClick={() => {
+            setEditingProduct(null);
+            setOpen(true);
+          }}
+        >
           <Plus className="mr-2 h-4 w-4" /> Add Product
         </Button>
       </div>
+
+      {!hasCategories && (
+        <Card className="mt-6 border-amber-200 bg-amber-50/80">
+          <CardContent className="flex flex-col gap-4 py-6 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-amber-950">Add at least one category first.</p>
+              <p className="text-sm text-amber-900/80">
+                Products need a category before they can be created.
+              </p>
+            </div>
+            <Button asChild variant="outline" className="border-amber-300 bg-white text-amber-950 hover:bg-amber-100">
+              <Link href="/admin/categories">Go to Categories</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="mt-8">
         <CardHeader className="py-4">
@@ -86,7 +127,7 @@ export function ProductClient({ data, categories }: ProductClientProps) {
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="w-[80px]">Image</TableHead>
+                <TableHead className="w-20">Image</TableHead>
                 <TableHead>Product Details</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead className="text-right">Price</TableHead>
@@ -105,10 +146,14 @@ export function ProductClient({ data, categories }: ProductClientProps) {
                 filteredData.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell>
+                      {(() => {
+                        const primaryImage = product.images.find((image) => image.isPrimary) ?? product.images[0];
+
+                        return (
                       <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted">
-                        {product.images[0] ? (
+                        {primaryImage ? (
                           <img 
-                            src={product.images[0]} 
+                            src={primaryImage.image} 
                             alt={product.name} 
                             className="object-cover w-full h-full"
                           />
@@ -116,14 +161,31 @@ export function ProductClient({ data, categories }: ProductClientProps) {
                           <Package className="h-6 w-6 absolute inset-0 m-auto text-muted-foreground opacity-20" />
                         )}
                       </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <div className="font-medium text-base">{product.name}</div>
                       <div className="text-xs text-muted-foreground font-mono mt-0.5">SKU: {product.sku}</div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {product.tags.slice(0, 3).map((tag) => (
+                          <Badge key={tag} variant="secondary" className="text-[11px]">
+                            {tag}
+                          </Badge>
+                        ))}
+                        {product.tags.length > 3 && (
+                          <Badge variant="outline" className="text-[11px]">
+                            +{product.tags.length - 3}
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>{product.category.name}</TableCell>
                     <TableCell className="text-right font-medium">
-                      ${product.retailPrice.toFixed(2)}
+                      <div>${product.retailPrice.toFixed(2)}</div>
+                      {product.discount ? (
+                        <div className="text-xs text-emerald-600">-{product.discount}% off</div>
+                      ) : null}
                     </TableCell>
                     <TableCell className="text-right">
                       {product.quantity}
@@ -155,12 +217,14 @@ export function ProductClient({ data, categories }: ProductClientProps) {
         </CardContent>
       </Card>
 
-      <ProductFormDialog 
-        open={open} 
-        onOpenChange={setOpen} 
-        initialData={editingProduct}
-        categories={categories}
-      />
+      {open ? (
+        <ProductFormDialog 
+          open={open} 
+          onOpenChange={setOpen} 
+          initialData={editingProduct}
+          categories={categories}
+        />
+      ) : null}
     </>
   );
 }

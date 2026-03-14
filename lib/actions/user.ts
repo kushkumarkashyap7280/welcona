@@ -83,6 +83,64 @@ export async function getCartAction() {
   return cart;
 }
 
+export async function addToCartAction(
+  productId: string,
+  quantity: number
+): Promise<{ error?: string; success?: boolean }> {
+  const session = await getSessionUser();
+  if (!session || session.role !== "customer") return { error: "Not authenticated." };
+
+  if (!Number.isFinite(quantity) || quantity < 1) {
+    return { error: "Quantity must be at least 1." };
+  }
+
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { id: true },
+  });
+
+  if (!product) {
+    return { error: "Product not found." };
+  }
+
+  const cart = await prisma.cart.upsert({
+    where: { userId: session.sub },
+    create: {
+      userId: session.sub,
+    },
+    update: {},
+    select: { id: true },
+  });
+
+  const existingItem = await prisma.cartItem.findFirst({
+    where: {
+      cartId: cart.id,
+      productId,
+    },
+    select: { id: true, quantity: true },
+  });
+
+  if (existingItem) {
+    await prisma.cartItem.update({
+      where: { id: existingItem.id },
+      data: {
+        quantity: existingItem.quantity + quantity,
+      },
+    });
+  } else {
+    await prisma.cartItem.create({
+      data: {
+        cartId: cart.id,
+        productId,
+        quantity,
+      },
+    });
+  }
+
+  revalidatePath("/dashboard/cart");
+  return { success: true };
+}
+
 export async function updateCartItemAction(
   cartItemId: string,
   quantity: number

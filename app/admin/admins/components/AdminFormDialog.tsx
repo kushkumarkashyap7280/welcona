@@ -76,7 +76,7 @@ export function AdminFormDialog({ open, onOpenChange }: AdminFormDialogProps) {
       onOpenChange(val);
       if (!val) form.reset();
     }}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-106.25">
         <DialogHeader>
           <DialogTitle>Add Administrator</DialogTitle>
           <DialogDescription>
