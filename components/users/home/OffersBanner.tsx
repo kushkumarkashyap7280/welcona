@@ -26,7 +26,7 @@ export function OffersBanner({ config }: Props) {
     <section className="py-6">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
-          className="relative overflow-hidden rounded-3xl min-h-[340px] flex items-center"
+          className="relative overflow-hidden rounded-3xl min-h-85 flex items-center"
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-40px" }}

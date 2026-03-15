@@ -88,7 +88,7 @@ export function CategorySection({ config }: Props) {
                   initial="hidden"
                   whileInView="visible"
                   viewport={{ once: true, margin: "-60px" }}
-                  className="relative group overflow-hidden rounded-3xl aspect-[4/3] shadow-2xl"
+                  className="relative group overflow-hidden rounded-3xl aspect-4/3 shadow-2xl"
                 >
                   <Image
                     src={cat.image}
