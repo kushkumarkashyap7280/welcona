@@ -10,6 +10,7 @@ import {
   LogOut,
   Settings,
   ShoppingBag,
+  Home,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ const navItems = [
   { name: "Orders", href: "/admin/orders", icon: ShoppingBag },
   { name: "Categories", href: "/admin/categories", icon: Tags },
   { name: "Admins", href: "/admin/admins", icon: Users },
+  { name: "Home Page", href: "/admin/home-page", icon: Home },
 ];
 
 export function AdminSidebar() {

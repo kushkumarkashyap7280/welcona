@@ -395,7 +395,8 @@ export const ModelName = {
   CartItem: 'CartItem',
   Order: 'Order',
   OrderItem: 'OrderItem',
-  UserNotification: 'UserNotification'
+  UserNotification: 'UserNotification',
+  SiteConfig: 'SiteConfig'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -411,7 +412,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "admin" | "address" | "category" | "product" | "productImage" | "rating" | "cart" | "cartItem" | "order" | "orderItem" | "userNotification"
+    modelProps: "user" | "admin" | "address" | "category" | "product" | "productImage" | "rating" | "cart" | "cartItem" | "order" | "orderItem" | "userNotification" | "siteConfig"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1303,6 +1304,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SiteConfig: {
+      payload: Prisma.$SiteConfigPayload<ExtArgs>
+      fields: Prisma.SiteConfigFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SiteConfigFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SiteConfigPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SiteConfigFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SiteConfigPayload>
+        }
+        findFirst: {
+          args: Prisma.SiteConfigFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SiteConfigPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SiteConfigFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SiteConfigPayload>
+        }
+        findMany: {
+          args: Prisma.SiteConfigFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SiteConfigPayload>[]
+        }
+        create: {
+          args: Prisma.SiteConfigCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SiteConfigPayload>
+        }
+        createMany: {
+          args: Prisma.SiteConfigCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SiteConfigCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SiteConfigPayload>[]
+        }
+        delete: {
+          args: Prisma.SiteConfigDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SiteConfigPayload>
+        }
+        update: {
+          args: Prisma.SiteConfigUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SiteConfigPayload>
+        }
+        deleteMany: {
+          args: Prisma.SiteConfigDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SiteConfigUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SiteConfigUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SiteConfigPayload>[]
+        }
+        upsert: {
+          args: Prisma.SiteConfigUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SiteConfigPayload>
+        }
+        aggregate: {
+          args: Prisma.SiteConfigAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSiteConfig>
+        }
+        groupBy: {
+          args: Prisma.SiteConfigGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SiteConfigGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SiteConfigCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SiteConfigCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1517,6 +1592,16 @@ export const UserNotificationScalarFieldEnum = {
 } as const
 
 export type UserNotificationScalarFieldEnum = (typeof UserNotificationScalarFieldEnum)[keyof typeof UserNotificationScalarFieldEnum]
+
+
+export const SiteConfigScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  value: 'value',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SiteConfigScalarFieldEnum = (typeof SiteConfigScalarFieldEnum)[keyof typeof SiteConfigScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1818,6 +1903,7 @@ export type GlobalOmitConfig = {
   order?: Prisma.OrderOmit
   orderItem?: Prisma.OrderItemOmit
   userNotification?: Prisma.UserNotificationOmit
+  siteConfig?: Prisma.SiteConfigOmit
 }
 
 /* Types for Logging */

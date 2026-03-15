@@ -1,48 +1,55 @@
-import Link from "next/link";
-import { getSessionUser } from "@/lib/session";
 import { redirect } from "next/navigation";
+import { getSessionUser } from "@/lib/session";
+import { getHomeConfig } from "@/lib/home-config";
+import { HeroSection } from "@/components/users/home/HeroSection";
+import { MarqueeStrip } from "@/components/users/home/MarqueeStrip";
+import { HotTabs } from "@/components/users/home/HotTabs";
+import { CategorySection } from "@/components/users/home/CategorySection";
+import { StatsSection } from "@/components/users/home/StatsSection";
+import { WhyWelcona } from "@/components/users/home/WhyWelcona";
+import { BottomCta } from "@/components/users/home/BottomCta";
+import { OffersBanner } from "@/components/users/home/OffersBanner";
 
 export const metadata = {
-  title: "Home",
-  description: "Luxury bath fittings crafted by Welcona.",
+  title: "Welcona — Luxury Bath Fittings, Factory Direct",
+  description:
+    "Discover Welcona's curated collection of premium showers, taps, and bath accessories. Factory-direct pricing, 2-year warranty, pan India delivery.",
 };
 
 export default async function HomePage() {
   const session = await getSessionUser();
-  
+
   if (session?.role === "admin") {
     redirect("/admin");
   }
 
+  const config = await getHomeConfig();
+
   return (
-    <section className="flex flex-col items-center justify-center px-5 py-28 md:py-40 text-center">
-      <p className="text-xs tracking-[0.25em] text-primary uppercase font-medium mb-4">
-        Premium Bath Fittings
-      </p>
-      <h1 className="text-4xl md:text-6xl font-bold tracking-tight max-w-2xl leading-[1.1]">
-        Elevate Your
-        <span className="text-primary"> Bathroom</span>
-        <br />
-        Experience
-      </h1>
-      <p className="mt-6 max-w-lg text-muted-foreground text-base md:text-lg">
-        Discover Welcona&apos;s curated collection of luxury bath fittings —
-        crafted with precision, designed for modern living.
-      </p>
-      <div className="mt-10 flex flex-wrap gap-4 justify-center">
-        <Link
-          href="/products"
-          className="inline-flex items-center justify-center rounded-xl bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-        >
-          Explore Products
-        </Link>
-        <Link
-          href="/signup"
-          className="inline-flex items-center justify-center rounded-xl border border-border px-8 py-3 text-sm font-semibold transition hover:bg-muted"
-        >
-          Create Account
-        </Link>
-      </div>
-    </section>
+    <main>
+      {/* 1 — Hero with background image */}
+      {config.hero.enabled && <HeroSection config={config.hero} />}
+
+      {/* 2 — Animated trust marquee strip */}
+      {config.marquee.enabled && <MarqueeStrip />}
+
+      {/* 3 — Hot tabs product browser */}
+      {config.hotTabs.enabled && <HotTabs tabs={config.hotTabs.tabs} />}
+
+      {/* 4 — Category showcase (alternating left/right with images) */}
+      {config.categories.enabled && <CategorySection config={config.categories} />}
+
+      {/* 5 — Animated stats counters */}
+      {config.stats.enabled && <StatsSection config={config.stats} />}
+
+      {/* 6 — Offers banner with image background */}
+      {config.offersBanner.enabled && <OffersBanner config={config.offersBanner} />}
+
+      {/* 7 — Why Welcona trust features */}
+      {config.whyWelcona.enabled && <WhyWelcona />}
+
+      {/* 8 — Bottom CTA */}
+      {config.bottomCta.enabled && <BottomCta />}
+    </main>
   );
 }

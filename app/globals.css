@@ -144,4 +144,30 @@
   .luxury-card {
     @apply rounded-3xl border border-border/70 bg-card/85 p-6;
   }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 28s linear infinite;
+}
+
+@keyframes shimmer-ring {
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.08); }
+}
+
+.animate-shimmer-ring {
+  animation: shimmer-ring 5s ease-in-out infinite;
 }
