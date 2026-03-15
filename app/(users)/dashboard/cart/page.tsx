@@ -78,6 +78,7 @@ export default function CartPage() {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [pendingItems, setPendingItems] = useState<Set<string>>(new Set());
+  const [draftQty, setDraftQty] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
 
   const fetchCart = async () => {
@@ -248,9 +249,40 @@ export default function CartPage() {
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
-                        <span className="w-10 text-center text-sm font-semibold">
-                          {item.quantity}
-                        </span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={item.product.quantity}
+                          disabled={isItemPending}
+                          value={draftQty[item.id] ?? item.quantity}
+                          onChange={(e) =>
+                            setDraftQty((prev) => ({
+                              ...prev,
+                              [item.id]: e.target.value,
+                            }))
+                          }
+                          onBlur={(e) => {
+                            const raw = Number(e.target.value);
+                            const clamped = Math.max(
+                              1,
+                              Math.min(item.product.quantity, Number.isFinite(raw) ? raw : 1)
+                            );
+                            setDraftQty((prev) => {
+                              const next = { ...prev };
+                              delete next[item.id];
+                              return next;
+                            });
+                            if (clamped !== item.quantity) {
+                              handleUpdateQuantity(item.id, clamped);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              (e.target as HTMLInputElement).blur();
+                            }
+                          }}
+                          className="w-12 border-none bg-transparent text-center text-sm font-semibold outline-none disabled:opacity-50"
+                        />
                         <Button
                           type="button"
                           variant="ghost"
@@ -267,6 +299,9 @@ export default function CartPage() {
                           <Plus className="h-3 w-3" />
                         </Button>
                       </div>
+                      {item.quantity >= item.product.quantity && item.product.quantity > 0 && (
+                        <p className="text-[11px] text-amber-600 mt-1">Max stock reached</p>
+                      )}
 
                       {/* Price */}
                       <div className="text-right">

@@ -178,14 +178,11 @@ export default function OrdersPage() {
           </div>
         ) : (
           displayedOrders.map((order) => {
-            const firstImage =
-              order.orderItems[0]?.product.images.find((i) => i.isPrimary) ??
-              order.orderItems[0]?.product.images[0];
-
             return (
-              <div
+              <Link
                 key={order.id}
-                className="rounded-2xl border border-border/70 bg-card/90 p-5 transition hover:shadow-sm"
+                href={`/dashboard/orders/${order.id}`}
+                className="block rounded-2xl border border-border/70 bg-card/90 p-5 transition hover:shadow-sm hover:border-primary/40"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                   <div>
@@ -265,11 +262,12 @@ export default function OrdersPage() {
                     </p>
                   </div>
 
-                  <div className="text-right shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
                     <p className="text-sm font-semibold">{formatPrice(order.total)}</p>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </div>
-              </div>
+              </Link>
             );
           })
         )}

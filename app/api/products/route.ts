@@ -7,10 +7,13 @@ type SortMode = "newest" | "priceAsc" | "priceDesc" | "discount";
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const page = Math.max(Number(searchParams.get("page") || "1"), 1);
-  const pageSize = Math.min(Math.max(Number(searchParams.get("pageSize") || "9"), 1), 24);
+  const pageSize = Math.min(Math.max(Number(searchParams.get("pageSize") || "12"), 1), 24);
   const categoryId = searchParams.get("categoryId");
   const query = (searchParams.get("q") || "").trim();
   const sort = (searchParams.get("sort") as SortMode) || "newest";
+  const tag = searchParams.get("tag") ?? null;
+  const minPrice = searchParams.get("minPrice") ? Number(searchParams.get("minPrice")) : null;
+  const maxPrice = searchParams.get("maxPrice") ? Number(searchParams.get("maxPrice")) : null;
 
   const where = {
     ...(categoryId && categoryId !== "all" ? { categoryId } : {}),
@@ -21,6 +24,15 @@ export async function GET(request: NextRequest) {
             { sku: { contains: query, mode: "insensitive" as const } },
             { tags: { hasSome: query.split(" ").filter(Boolean) } },
           ],
+        }
+      : {}),
+    ...(tag ? { tags: { hasSome: [tag] } } : {}),
+    ...(minPrice !== null || maxPrice !== null
+      ? {
+          retailPrice: {
+            ...(minPrice !== null ? { gte: minPrice } : {}),
+            ...(maxPrice !== null ? { lte: maxPrice } : {}),
+          },
         }
       : {}),
   };
@@ -34,7 +46,13 @@ export async function GET(request: NextRequest) {
           ? [{ discount: "desc" as const }, { createdAt: "desc" as const }]
           : [{ createdAt: "desc" as const }];
 
-  const [total, items, categories] = await Promise.all([
+  // Fetch tags from all products in the selected category (ignoring current tag/price filter)
+  // so tag chips remain visible and stable when a tag is already active
+  const tagSourceWhere = {
+    ...(categoryId && categoryId !== "all" ? { categoryId } : {}),
+  };
+
+  const [total, items, categories, tagSourceProducts] = await Promise.all([
     prisma.product.count({ where }),
     prisma.product.findMany({
       where,
@@ -42,31 +60,24 @@ export async function GET(request: NextRequest) {
       skip: (page - 1) * pageSize,
       take: pageSize,
       include: {
-        category: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        category: { select: { id: true, name: true } },
         images: {
           orderBy: [{ isPrimary: "desc" }, { index: "asc" }, { createdAt: "asc" }],
         },
-        ratings: {
-          select: {
-            id: true,
-            rating: true,
-          },
-        },
+        ratings: { select: { id: true, rating: true } },
       },
     }),
     prisma.category.findMany({
       orderBy: { name: "asc" },
-      select: {
-        id: true,
-        name: true,
-      },
+      select: { id: true, name: true },
+    }),
+    prisma.product.findMany({
+      where: tagSourceWhere,
+      select: { tags: true },
     }),
   ]);
+
+  const allTags = [...new Set(tagSourceProducts.flatMap((p) => p.tags))].sort();
 
   const data = items.map((item) => {
     const reviewCount = item.ratings.length;
@@ -98,7 +109,9 @@ export async function GET(request: NextRequest) {
     pageSize,
     total,
     hasMore: page * pageSize < total,
+    totalPages: Math.ceil(total / pageSize),
     categories,
+    allTags,
     items: data,
   });
 }

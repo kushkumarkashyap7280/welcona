@@ -359,42 +359,64 @@ export async function placeOrderAction(
   const isCOD = input.paymentMethod === "CASH_ON_DELIVERY";
   const paymentStatus = isCOD ? "PENDING" : "COMPLETED";
 
-  // Create order
-  const order = await prisma.order.create({
-    data: {
-      userId: session.sub,
-      total: Math.round(total * 100) / 100,
-      paymentMethod: input.paymentMethod as any,
-      paymentStatus: paymentStatus as any,
-      status: "CONFIRMED",
-      addressId: address.id,
-      shippingAddress: {
-        line1: address.line1,
-        line2: address.line2,
-        city: address.city,
-        state: address.state,
-        postalCode: address.postalCode,
-        country: address.country,
-      },
-      razorpayOrderId: input.razorpayOrderId || null,
-      razorpayPaymentId: input.razorpayPaymentId || null,
-      orderItems: {
-        create: orderItemsData,
-      },
-    },
-    select: { id: true },
-  });
+  // Create order, decrement stock, and clear cart in a single transaction
+  let order: { id: string };
+  try {
+    order = await prisma.$transaction(async (tx) => {
+      // Re-check stock inside the transaction to prevent race conditions
+      for (const item of cart.cartItems) {
+        const fresh = await tx.product.findUnique({
+          where: { id: item.product.id },
+          select: { quantity: true, name: true },
+        });
+        if (!fresh || item.quantity > fresh.quantity) {
+          throw new Error(
+            `Not enough stock for "${fresh?.name ?? item.product.name}". Available: ${fresh?.quantity ?? 0}`
+          );
+        }
+      }
 
-  // Reduce product stock
-  for (const item of cart.cartItems) {
-    await prisma.product.update({
-      where: { id: item.product.id },
-      data: { quantity: { decrement: item.quantity } },
+      const created = await tx.order.create({
+        data: {
+          userId: session.sub,
+          total: Math.round(total * 100) / 100,
+          paymentMethod: input.paymentMethod as any,
+          paymentStatus: paymentStatus as any,
+          status: "PENDING",
+          addressId: address.id,
+          shippingAddress: {
+            line1: address.line1,
+            line2: address.line2,
+            city: address.city,
+            state: address.state,
+            postalCode: address.postalCode,
+            country: address.country,
+          },
+          razorpayOrderId: input.razorpayOrderId || null,
+          razorpayPaymentId: input.razorpayPaymentId || null,
+          orderItems: {
+            create: orderItemsData,
+          },
+        },
+        select: { id: true },
+      });
+
+      // Decrement stock
+      for (const item of cart.cartItems) {
+        await tx.product.update({
+          where: { id: item.product.id },
+          data: { quantity: { decrement: item.quantity } },
+        });
+      }
+
+      // Clear cart
+      await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+
+      return created;
     });
+  } catch (err: any) {
+    return { error: err?.message ?? "Failed to place order. Please try again." };
   }
-
-  // Clear cart
-  await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
 
   revalidatePath("/dashboard/cart");
   revalidatePath("/dashboard/orders");

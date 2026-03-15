@@ -114,10 +114,30 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    // Fetch actual payment method used from Razorpay
+    let actualPaymentMethod = "NETBANKING";
+    try {
+      const paymentDetails = await razorpay.payments.fetch(razorpay_payment_id);
+      const method = (paymentDetails as any).method as string | undefined;
+      if (method === "card") {
+        const cardType = (paymentDetails as any).card?.type as string | undefined;
+        actualPaymentMethod =
+          cardType === "debit" ? "DEBIT_CARD" : "CREDIT_CARD";
+      } else if (method === "upi") {
+        actualPaymentMethod = "UPI";
+      } else if (method === "netbanking") {
+        actualPaymentMethod = "NETBANKING";
+      }
+      // wallet, emi → default NETBANKING
+    } catch {
+      // Non-fatal — fall back to NETBANKING if fetch fails
+    }
+
     return NextResponse.json({
       verified: true,
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
+      actualPaymentMethod,
     });
   } catch (error) {
     console.error("Payment verification error:", error);

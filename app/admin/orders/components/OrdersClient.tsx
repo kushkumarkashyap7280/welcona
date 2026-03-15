@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   Search,
   ChevronLeft,
@@ -11,6 +12,7 @@ import {
   XCircle,
   Clock,
   MoreHorizontal,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -419,6 +421,13 @@ export function OrdersClient() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/orders/${order.id}`} className="flex items-center cursor-pointer">
+                              <Eye className="mr-2 h-3.5 w-3.5" />
+                              View Details
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem disabled className="text-xs font-medium">
                             Update Status
                           </DropdownMenuItem>

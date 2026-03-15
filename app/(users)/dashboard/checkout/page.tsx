@@ -11,12 +11,15 @@ import {
   CheckCircle2,
   ArrowLeft,
   ShieldCheck,
+  Phone,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   getCartAction,
   getAddressesAction,
+  getProfileAction,
+  updateProfileAction,
   createAddressAction,
   placeOrderAction,
   type AddressInput,
@@ -60,11 +63,20 @@ type Address = {
 };
 
 const PAYMENT_METHODS = [
-  { id: "CREDIT_CARD", label: "Credit Card", icon: CreditCard, online: true },
-  { id: "DEBIT_CARD", label: "Debit Card", icon: CreditCard, online: true },
-  { id: "UPI", label: "UPI", icon: CreditCard, online: true },
-  { id: "NETBANKING", label: "Net Banking", icon: CreditCard, online: true },
-  { id: "CASH_ON_DELIVERY", label: "Cash on Delivery", icon: Banknote, online: false },
+  {
+    id: "NETBANKING",
+    label: "Pay Online",
+    icon: CreditCard,
+    online: true,
+    description: "Card, UPI, Net Banking & more via Razorpay",
+  },
+  {
+    id: "CASH_ON_DELIVERY",
+    label: "Cash on Delivery",
+    icon: Banknote,
+    online: false,
+    description: "Pay when your order is delivered",
+  },
 ] as const;
 
 function formatPrice(price: number) {
@@ -97,6 +109,12 @@ export default function CheckoutPage() {
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [selectedPayment, setSelectedPayment] = useState<string>("");
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
+
+  // Phone number
+  const [userPhone, setUserPhone] = useState<string | null>(null);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
 
   // Address form
   const [addressForm, setAddressForm] = useState<AddressInput>({
@@ -110,9 +128,10 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     async function load() {
-      const [cartData, addressData] = await Promise.all([
+      const [cartData, addressData, profileData] = await Promise.all([
         getCartAction(),
         getAddressesAction(),
+        getProfileAction(),
       ]);
 
       const items = (cartData as any)?.cartItems ?? [];
@@ -126,6 +145,10 @@ export default function CheckoutPage() {
       if (items.length === 0) {
         router.push("/dashboard/cart");
       }
+
+      const mobile = (profileData as any)?.mobile ?? null;
+      setUserPhone(mobile || null);
+      if (mobile) setPhoneInput(mobile);
 
       setLoading(false);
     }
@@ -149,15 +172,39 @@ export default function CheckoutPage() {
   );
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
+  const handleSavePhone = async () => {
+    const trimmed = phoneInput.trim();
+    if (!trimmed) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
+    setSavingPhone(true);
+    const result = await updateProfileAction({ mobile: trimmed });
+    setSavingPhone(false);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    setUserPhone(trimmed);
+    toast.success("Phone number saved");
+  };
+
   const handleCreateAddress = async () => {
-    if (!addressForm.line1 || !addressForm.city || !addressForm.state || !addressForm.postalCode) {
+    if (
+      !addressForm.line1 ||
+      !addressForm.city ||
+      !addressForm.state ||
+      !addressForm.postalCode
+    ) {
       toast.error("Please fill in all required address fields");
       return;
     }
 
+    setSavingAddress(true);
     const result = await createAddressAction(addressForm);
     if (result.error) {
       toast.error(result.error);
+      setSavingAddress(false);
       return;
     }
 
@@ -168,10 +215,22 @@ export default function CheckoutPage() {
       setSelectedAddress(result.address.id);
     }
     setShowAddressForm(false);
-    setAddressForm({ line1: "", line2: "", city: "", state: "", postalCode: "", country: "India" });
+    setAddressForm({
+      line1: "",
+      line2: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      country: "India",
+    });
+    setSavingAddress(false);
   };
 
   const handlePlaceOrder = async () => {
+    if (!userPhone) {
+      toast.error("Please add a phone number to continue");
+      return;
+    }
     if (!selectedAddress) {
       toast.error("Please select a delivery address");
       return;
@@ -187,7 +246,6 @@ export default function CheckoutPage() {
     const isOnline = paymentConfig?.online ?? false;
 
     if (isOnline) {
-      // Create Razorpay order
       try {
         const response = await fetch("/api/checkout", {
           method: "POST",
@@ -203,7 +261,6 @@ export default function CheckoutPage() {
 
         const data = await response.json();
 
-        // Open Razorpay checkout
         const options = {
           key: data.keyId,
           amount: data.amount,
@@ -212,7 +269,7 @@ export default function CheckoutPage() {
           description: `Order for ${totalItems} items`,
           order_id: data.orderId,
           handler: async (response: any) => {
-            // Verify payment
+            // Verify payment + get actual method used
             const verifyRes = await fetch("/api/checkout", {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
@@ -231,10 +288,10 @@ export default function CheckoutPage() {
 
             const verified = await verifyRes.json();
 
-            // Place the order
+            // Place the order with actual payment method from Razorpay
             const result = await placeOrderAction({
               addressId: selectedAddress,
-              paymentMethod: selectedPayment,
+              paymentMethod: verified.actualPaymentMethod || selectedPayment,
               razorpayOrderId: verified.razorpayOrderId,
               razorpayPaymentId: verified.razorpayPaymentId,
             });
@@ -262,7 +319,7 @@ export default function CheckoutPage() {
         setPlacing(false);
       }
     } else {
-      // Cash on Delivery — place order directly
+      // Cash on Delivery
       const result = await placeOrderAction({
         addressId: selectedAddress,
         paymentMethod: selectedPayment,
@@ -290,7 +347,11 @@ export default function CheckoutPage() {
   return (
     <div>
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard/cart")}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push("/dashboard/cart")}
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -302,6 +363,47 @@ export default function CheckoutPage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_380px]">
         {/* Left Column */}
         <div className="space-y-6">
+          {/* Phone Number */}
+          <div className="rounded-2xl border border-border/70 bg-card/90 p-6">
+            <h2 className="flex items-center gap-2 text-lg font-semibold mb-4">
+              <Phone className="h-5 w-5" />
+              Contact Number
+            </h2>
+
+            {userPhone ? (
+              <div className="flex items-center gap-3 rounded-xl border border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-900/10 px-4 py-3">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                <span className="text-sm font-medium">{userPhone}</span>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  A phone number is required to confirm and deliver your order.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    type="tel"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value)}
+                    placeholder="Enter your mobile number"
+                    className="flex-1"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleSavePhone}
+                    disabled={savingPhone || !phoneInput.trim()}
+                  >
+                    {savingPhone ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      "Save"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Delivery Address */}
           <div className="rounded-2xl border border-border/70 bg-card/90 p-6">
             <div className="flex items-center justify-between mb-4">
@@ -373,18 +475,29 @@ export default function CheckoutPage() {
                       id="postalCode"
                       value={addressForm.postalCode}
                       onChange={(e) =>
-                        setAddressForm({ ...addressForm, postalCode: e.target.value })
+                        setAddressForm({
+                          ...addressForm,
+                          postalCode: e.target.value,
+                        })
                       }
                     />
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={handleCreateAddress}>
+                  <Button
+                    size="sm"
+                    onClick={handleCreateAddress}
+                    disabled={savingAddress}
+                  >
+                    {savingAddress ? (
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                    ) : null}
                     Save Address
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
+                    disabled={savingAddress}
                     onClick={() => setShowAddressForm(false)}
                   >
                     Cancel
@@ -439,7 +552,7 @@ export default function CheckoutPage() {
               Payment Method
             </h2>
 
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               {PAYMENT_METHODS.map((method) => (
                 <button
                   key={method.id}
@@ -452,10 +565,10 @@ export default function CheckoutPage() {
                   }`}
                 >
                   <method.icon className="h-5 w-5 shrink-0" />
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{method.label}</p>
                     <p className="text-[11px] text-muted-foreground">
-                      {method.online ? "Pay online via Razorpay" : "Pay when delivered"}
+                      {method.description}
                     </p>
                   </div>
                   {selectedPayment === method.id && (
@@ -473,7 +586,9 @@ export default function CheckoutPage() {
 
           <div className="max-h-60 space-y-3 overflow-y-auto pr-1">
             {cartItems.map((item) => {
-              const img = item.product.images.find((i) => i.isPrimary) ?? item.product.images[0];
+              const img =
+                item.product.images.find((i) => i.isPrimary) ??
+                item.product.images[0];
               const unitPrice = getUnitPrice(item);
               return (
                 <div key={item.id} className="flex items-center gap-3">
@@ -486,7 +601,9 @@ export default function CheckoutPage() {
                     />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{item.product.name}</p>
+                    <p className="text-sm font-medium truncate">
+                      {item.product.name}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       Qty: {item.quantity} &times; {formatPrice(unitPrice)}
                     </p>
@@ -517,10 +634,21 @@ export default function CheckoutPage() {
             </div>
           </div>
 
+          {!userPhone && (
+            <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+              Add a phone number above to place your order.
+            </div>
+          )}
+
           <Button
             className="w-full"
             size="lg"
-            disabled={placing || !selectedAddress || !selectedPayment}
+            disabled={
+              placing ||
+              !selectedAddress ||
+              !selectedPayment ||
+              !userPhone
+            }
             onClick={handlePlaceOrder}
           >
             {placing ? (
