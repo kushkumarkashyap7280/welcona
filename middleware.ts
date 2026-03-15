@@ -38,8 +38,11 @@ export async function middleware(req: NextRequest) {
 
   // Redirect logged-in users away from login/signup
   if (AUTH_ONLY_ROUTES.some((r) => pathname === r)) {
-    if (isAuthenticated) {
+    if (isAuthenticated && session?.role !== "admin") {
       return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+    if(isAuthenticated && session?.role === "admin") {
+      return NextResponse.redirect(new URL("/admin", req.url));
     }
     return NextResponse.next();
   }
@@ -50,6 +53,10 @@ export async function middleware(req: NextRequest) {
       const loginUrl = new URL("/login", req.url);
       loginUrl.searchParams.set("from", pathname);
       return NextResponse.redirect(loginUrl);
+    }
+    // Block admins from reaching the customer dashboard
+    if (session!.role !== "customer") {
+      return NextResponse.redirect(new URL("/admin", req.url));
     }
     // Attach user id as a header so server components can read it without re-verifying
     const response = NextResponse.next();
