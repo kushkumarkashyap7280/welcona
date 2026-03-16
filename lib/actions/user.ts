@@ -3,6 +3,7 @@
 import prisma from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import { revalidatePath } from "next/cache";
+import { sendPaymentSuccessEmail } from "@/lib/email";
 
 // ─── Profile ────────────────────────────────────────────────────────────────
 
@@ -416,6 +417,25 @@ export async function placeOrderAction(
     });
   } catch (err: any) {
     return { error: err?.message ?? "Failed to place order. Please try again." };
+  }
+
+  // Attempt to send email async in background without failing order
+  const emailToSend = session.email;
+  const shortItems = orderItemsData.map((d) => {
+    const p = cart.cartItems.find((c) => c.product.id === d.productId);
+    return {
+      name: p?.product.name ?? "Product",
+      quantity: d.quantity,
+      price: d.price
+    };
+  });
+  
+  if (emailToSend && paymentStatus === "COMPLETED") {
+    // Send email asynchronously
+    Promise.resolve().then(() => {
+      sendPaymentSuccessEmail(emailToSend, order.id, Math.round(total * 100) / 100, shortItems)
+        .catch(e => console.error("Failed sending order email in background", e));
+    });
   }
 
   revalidatePath("/dashboard/cart");

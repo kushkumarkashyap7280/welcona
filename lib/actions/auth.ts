@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import bcrypt from "bcrypt";
 import prisma from "@/lib/db";
 import redis from "@/lib/redis";
-import { sendOtpEmail } from "@/lib/email";
+import { sendCentralizedOtp, verifyCentralizedOtp } from "@/lib/otp";
 import {
   signToken,
   COOKIE_NAME,
@@ -70,30 +70,13 @@ export async function logoutAction() {
 
 // ─── OTP: Send ──────────────────────────────────────────────────────────────
 
-const OTP_TTL = 300; // 5 minutes
-const RATE_LIMIT_TTL = 3600; // 1 hour
-const MAX_OTP_ATTEMPTS = 3;
-
-function generateOtp(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
 export async function sendOtpAction(
   email: string
 ): Promise<{ success?: boolean; error?: string }> {
   const cleanEmail = email.trim().toLowerCase();
+  
   if (!cleanEmail || !cleanEmail.includes("@")) {
     return { error: "Please enter a valid email address." };
-  }
-
-  // Check rate limit
-  const countKey = `otp_count:${cleanEmail}`;
-  const currentCount = (await redis.get<number>(countKey)) ?? 0;
-
-  if (currentCount >= MAX_OTP_ATTEMPTS) {
-    return {
-      error: "Too many attempts. Please try again after 1 hour.",
-    };
   }
 
   // Check if user already exists with a password (suggest login instead)
@@ -112,26 +95,7 @@ export async function sendOtpAction(
     };
   }
 
-  // Generate and store OTP
-  const otp = generateOtp();
-  const otpKey = `otp:${cleanEmail}`;
-
-  await redis.set(otpKey, otp, { ex: OTP_TTL });
-
-  // Increment rate limit counter
-  if (currentCount === 0) {
-    await redis.set(countKey, 1, { ex: RATE_LIMIT_TTL });
-  } else {
-    await redis.incr(countKey);
-  }
-
-  // Send email
-  const result = await sendOtpEmail(cleanEmail, otp);
-  if (!result.success) {
-    return { error: result.error || "Failed to send verification email." };
-  }
-
-  return { success: true };
+  return sendCentralizedOtp(cleanEmail, "USER_SIGNUP");
 }
 
 // ─── OTP: Verify ────────────────────────────────────────────────────────────
@@ -141,34 +105,9 @@ export async function verifyOtpAction(
   code: string
 ): Promise<{ success?: boolean; error?: string }> {
   const cleanEmail = email.trim().toLowerCase();
-  const otpKey = `otp:${cleanEmail}`;
-
-  const storedOtp = await redis.get(otpKey);
-
-  const normalizeOtp = (value: unknown): string => {
-    if (typeof value === "string") return value;
-    if (typeof value === "number") return String(value);
-    if (value && typeof value === "object" && "otp" in value) {
-      const nestedOtp = (value as { otp?: unknown }).otp;
-      if (typeof nestedOtp === "string") return nestedOtp;
-      if (typeof nestedOtp === "number") return String(nestedOtp);
-    }
-    return "";
-  };
-
-  const storedOtpValue = normalizeOtp(storedOtp);
-
-  if (!storedOtpValue) {
-    return { error: "Verification code expired. Please request a new one." };
-  }
-
-  // Robustly clean both strings just in case
-  const cleanStored = storedOtpValue.replace(/\D/g, "");
-  const cleanProvided = String(code ?? "").replace(/\D/g, "");
-
-  if (cleanStored !== cleanProvided) {
-    return { error: "Invalid verification code." };
-  }
+  
+  const vr = await verifyCentralizedOtp(cleanEmail, code, "USER_SIGNUP");
+  if (!vr.success) return vr;
 
   // Mark email as verified in Redis (15 min window to complete signup)
   await redis.set(`verified:${cleanEmail}`, "true", { ex: 900 });
@@ -187,9 +126,6 @@ export async function verifyOtpAction(
     maxAge: 60 * 15,
     path: "/",
   });
-
-  // Clean up OTP key
-  await redis.del(otpKey);
 
   return { success: true };
 }

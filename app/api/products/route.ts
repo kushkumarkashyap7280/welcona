@@ -59,12 +59,23 @@ export async function GET(request: NextRequest) {
       orderBy,
       skip: (page - 1) * pageSize,
       take: pageSize,
-      include: {
-        category: { select: { id: true, name: true } },
-        images: {
-          orderBy: [{ isPrimary: "desc" }, { index: "asc" }, { createdAt: "asc" }],
-        },
-        ratings: { select: { id: true, rating: true } },
+      select: {
+          id: true,
+          name: true,
+          sku: true,
+          description: true,
+          tags: true,
+          retailPrice: true,
+          wholesalePrice: true,
+          wholesaleMinQuantity: true,
+          discount: true,
+          quantity: true,
+          category: { select: { id: true, name: true } },
+          images: {
+            select: { image: true, isPrimary: true, index: true },
+            orderBy: [{ isPrimary: "desc" }, { index: "asc" }, { createdAt: "asc" }],
+          },
+          ratings: { select: { id: true, rating: true } },
       },
     }),
     prisma.category.findMany({

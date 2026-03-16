@@ -119,35 +119,35 @@ function ProductCard({ item, index }: { item: CatalogItem; index: number }) {
           )}
           {/* Discount badge */}
           {item.discount && item.discount > 0 ? (
-            <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+            <div className="absolute top-2 left-2 bg-red-500 text-white text-[10px] sm:text-xs font-bold px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full">
               -{Math.round(item.discount)}%
             </div>
           ) : null}
           {/* Low stock */}
           {item.quantity > 0 && item.quantity <= 5 ? (
-            <div className="absolute bottom-0 inset-x-0 bg-amber-500/90 text-white text-xs text-center py-1 font-medium">
+            <div className="absolute bottom-0 inset-x-0 bg-amber-500/90 text-white text-[10px] sm:text-xs text-center py-0.5 sm:py-1 font-medium">
               Only {item.quantity} left
             </div>
           ) : null}
         </div>
 
         {/* Content */}
-        <div className="p-3.5 space-y-2">
-          <Badge variant="secondary" className="text-xs">
+        <div className="p-2.5 sm:p-3.5 space-y-1.5 sm:space-y-2">
+          <Badge variant="secondary" className="text-[10px] sm:text-xs px-1.5 py-0 sm:px-2.5 sm:py-0.5">
             {item.category.name}
           </Badge>
-          <p className="text-sm font-semibold leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors">
+          <p className="text-xs sm:text-sm font-semibold leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors">
             {item.name}
           </p>
           {item.avgRating > 0 && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+            <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
+              <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-amber-400 text-amber-400" />
               <span className="font-medium text-foreground">{item.avgRating.toFixed(1)}</span>
               <span>({item.reviewCount})</span>
             </div>
           )}
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-base font-bold text-foreground">
+          <div className="flex items-baseline gap-1 sm:gap-1.5">
+            <span className="text-sm sm:text-base font-bold text-foreground">
               {discountedPrice ?? priceFormatted}
             </span>
             {discountedPrice && (
@@ -166,11 +166,11 @@ function SkeletonCard() {
   return (
     <div className="bg-card rounded-2xl border overflow-hidden animate-pulse">
       <div className="aspect-square bg-muted" />
-      <div className="p-3.5 space-y-2">
-        <div className="h-4 bg-muted rounded w-1/3" />
-        <div className="h-4 bg-muted rounded w-3/4" />
-        <div className="h-4 bg-muted rounded w-1/2" />
-        <div className="h-5 bg-muted rounded w-1/3" />
+      <div className="p-2.5 sm:p-3.5 space-y-1.5 sm:space-y-2">
+        <div className="h-3 sm:h-4 bg-muted rounded w-1/3" />
+        <div className="h-3 sm:h-4 bg-muted rounded w-3/4" />
+        <div className="h-3 sm:h-4 bg-muted rounded w-1/2" />
+        <div className="h-4 sm:h-5 bg-muted rounded w-1/3" />
       </div>
     </div>
   );
@@ -274,7 +274,7 @@ export function HotTabs({ tabs }: Props) {
 
         {/* Product grid */}
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
             {Array.from({ length: 12 }).map((_, i) => (
               <SkeletonCard key={i} />
             ))}
@@ -293,7 +293,7 @@ export function HotTabs({ tabs }: Props) {
             <p className="text-sm">No products found for this filter.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
             {data.items.map((item, i) => (
               <ProductCard key={item.id} item={item} index={i} />
             ))}

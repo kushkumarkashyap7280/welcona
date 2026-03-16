@@ -372,32 +372,32 @@ function ProductCard({ item, index }: { item: CatalogItem; index: number }) {
 
           {/* Badges */}
           <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1">
-            <Badge className="bg-background/90 text-foreground text-xs shadow-none border-0 font-medium">
+            <Badge className="bg-background/90 text-foreground text-[10px] sm:text-xs px-1.5 py-0 sm:px-2.5 sm:py-0.5 shadow-none border-0 font-medium">
               {item.category.name}
             </Badge>
             {item.discount && item.discount > 0 ? (
-              <Badge className="bg-red-500 text-white text-xs border-0 shadow-sm">
+              <Badge className="bg-red-500 text-white text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 border-0 shadow-sm">
                 -{Math.round(item.discount)}%
               </Badge>
             ) : null}
           </div>
 
           {item.quantity > 0 && item.quantity <= 5 ? (
-            <div className="absolute bottom-0 inset-x-0 bg-amber-500/90 text-white text-xs text-center py-1 font-medium">
+            <div className="absolute bottom-0 inset-x-0 bg-amber-500/90 text-white text-[10px] sm:text-xs text-center py-0.5 sm:py-1 font-medium">
               Only {item.quantity} left
             </div>
           ) : null}
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-2.5">
-          <h3 className="text-sm font-semibold leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors">
+        <div className="p-2.5 sm:p-4 space-y-1.5 sm:space-y-2.5">
+          <h3 className="text-xs sm:text-sm font-semibold leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors">
             {item.name}
           </h3>
 
           {/* Rating */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+          <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-muted-foreground">
+            <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-amber-400 text-amber-400" />
             <span className="font-medium text-foreground">
               {item.reviewCount > 0 ? item.avgRating.toFixed(1) : "New"}
             </span>
@@ -410,7 +410,7 @@ function ProductCard({ item, index }: { item: CatalogItem; index: number }) {
               {item.tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
-                  className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full"
+                  className="text-[9px] sm:text-xs text-muted-foreground bg-muted px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-full"
                 >
                   {tag}
                 </span>
@@ -420,11 +420,11 @@ function ProductCard({ item, index }: { item: CatalogItem; index: number }) {
 
           {/* Price */}
           <div className="flex items-baseline gap-1.5 pt-1 border-t border-border/50">
-            <span className="text-base font-bold text-foreground">
+            <span className="text-sm sm:text-base font-bold text-foreground">
               {formatPrice(discountedPrice)}
             </span>
             {item.discount && item.discount > 0 ? (
-              <span className="text-xs text-muted-foreground line-through">
+              <span className="text-[10px] sm:text-xs text-muted-foreground line-through">
                 {formatPrice(item.retailPrice)}
               </span>
             ) : null}
@@ -515,15 +515,15 @@ function PaginationBar({
 
 function SkeletonGrid() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
       {Array.from({ length: 12 }).map((_, i) => (
         <div key={i} className="rounded-2xl border overflow-hidden animate-pulse">
           <div className="aspect-square bg-muted" />
-          <div className="p-4 space-y-2">
-            <div className="h-3.5 bg-muted rounded w-1/3" />
-            <div className="h-4 bg-muted rounded w-3/4" />
-            <div className="h-3 bg-muted rounded w-1/2" />
-            <div className="h-5 bg-muted rounded w-1/3" />
+          <div className="p-2.5 sm:p-4 space-y-1.5 sm:space-y-2">
+            <div className="h-3 sm:h-3.5 bg-muted rounded w-1/3" />
+            <div className="h-3 sm:h-4 bg-muted rounded w-3/4" />
+            <div className="h-2.5 sm:h-3 bg-muted rounded w-1/2" />
+            <div className="h-4 sm:h-5 bg-muted rounded w-1/3" />
           </div>
         </div>
       ))}
@@ -860,7 +860,7 @@ export function ProductCatalogClient() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4"
             >
               {items.map((item, i) => (
                 <ProductCard key={item.id} item={item} index={i} />
