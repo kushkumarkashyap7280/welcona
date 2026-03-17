@@ -13,12 +13,5 @@ export default async function AdminLayout({
     redirect("/");
   }
 
-  return (
-    <div className="flex min-h-screen bg-muted/40">
-      <AdminSidebar />
-      <div className="flex-1 overflow-x-hidden">
-        {children}
-      </div>
-    </div>
-  );
+  return <AdminSidebar>{children}</AdminSidebar>;
 }

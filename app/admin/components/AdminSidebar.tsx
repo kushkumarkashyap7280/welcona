@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Package,
@@ -11,6 +12,8 @@ import {
   Settings,
   ShoppingBag,
   Home,
+  Menu,
+  X
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -27,17 +30,43 @@ const navItems = [
   { name: "Home Page", href: "/admin/home-page", icon: Home },
 ];
 
-export function AdminSidebar() {
+export function AdminSidebar({ children }: { children?: React.ReactNode }) {
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
 
   return (
-    <div className="hidden border-r bg-background md:block w-64 min-h-screen shrink-0">
-      <div className="flex h-full max-h-screen flex-col gap-2">
-        <div className="flex h-14 items-center border-b px-4 lg:h-15 lg:px-6">
+    <div className="flex h-screen w-full overflow-hidden bg-muted/40 text-foreground">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-background transition-transform duration-200 md:static md:translate-x-0 shrink-0",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="flex h-14 items-center justify-between border-b px-4 lg:h-15 lg:px-6">
           <Link href="/admin" className="flex items-center gap-2 font-semibold tracking-wider text-xl uppercase text-primary">
             <Settings className="h-5 w-5" />
             <span>Welcona Admin</span>
           </Link>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="md:hidden p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
         
         <div className="flex-1 overflow-auto py-2">
@@ -71,6 +100,27 @@ export function AdminSidebar() {
             </Button>
           </form>
         </div>
+      </aside>
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Mobile top bar */}
+        <header className="flex h-14 items-center gap-4 md:hidden border-b bg-background px-4 lg:px-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 md:hidden"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle sidebar</span>
+          </Button>
+          <span className="font-semibold text-lg flex-1">Welcona Admin</span>
+        </header>
+        
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
+          {children}
+        </main>
       </div>
     </div>
   );

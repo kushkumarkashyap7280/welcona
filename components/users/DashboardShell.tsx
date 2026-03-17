@@ -18,7 +18,6 @@ import {
 import { useState, useEffect } from "react";
 
 const SIDEBAR_ITEMS = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
   { href: "/dashboard/cart", label: "Cart", icon: ShoppingCart },
   { href: "/dashboard/profile", label: "Profile", icon: User },
@@ -150,6 +149,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             {SIDEBAR_ITEMS.find((i) => i.href === pathname)?.label ||
               "Dashboard"}
           </h2>
+
+          <div className="ml-auto flex items-center gap-4 text-sm font-medium lg:hidden">
+            <Link href="/" className="text-muted-foreground hover:text-foreground">Home</Link>
+            <Link href="/products" className="text-muted-foreground hover:text-foreground">Products</Link>
+          </div>
         </header>
 
         {/* Page content */}
