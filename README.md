@@ -55,8 +55,9 @@ Each row can be removed independently. If a feature is removed from scope, the s
 | Dynamic homepage CMS/configuration panel | 13,000 | 13,000 |
 | OTP/email infra integration reliability handling | 8,000 | 8,000 |
 | QA, bug-fix cycle, go-live support | 12,000 | 12,000 |
+| SEO for top listing in serach engines and details | 12,000 | 12,000 |
 
-**Total recommended quote: INR 2,42,000**
+**Total recommended quote: INR 2,52,000**
 
 ## Package Options (For Client Discussion)
 
