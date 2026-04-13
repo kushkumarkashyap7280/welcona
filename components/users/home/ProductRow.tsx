@@ -12,6 +12,8 @@ import {
   Loader2,
   AlertCircle,
   Package,
+  PackageCheck,
+  PackageX,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +34,7 @@ type CatalogItem = {
   wholesalePrice: number;
   wholesaleMinQuantity: number;
   discount: number | null;
-  quantity: number;
+  inStock: boolean;
   category: { id: string; name: string };
   images: {
     id: string;
@@ -138,12 +140,17 @@ function ProductCard({ product, index }: { product: CatalogItem; index: number }
             ) : null}
           </div>
 
-          {/* Stock warning */}
-          {product.quantity <= 5 && product.quantity > 0 && (
-            <div className="absolute bottom-0 inset-x-0 bg-amber-500/90 py-1 text-center text-[10px] font-semibold text-white">
-              Only {product.quantity} left
-            </div>
-          )}
+          <div className="absolute bottom-0 inset-x-0 py-1 text-center text-[10px] font-semibold text-white bg-black/55 backdrop-blur-sm">
+            {product.inStock ? (
+              <span className="inline-flex items-center gap-1">
+                <PackageCheck className="h-3 w-3" /> In Stock
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1">
+                <PackageX className="h-3 w-3" /> Out of Stock
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Content */}

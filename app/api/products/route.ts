@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
       wholesalePrice: item.wholesalePrice,
       wholesaleMinQuantity: item.wholesaleMinQuantity,
       discount: item.discount,
-      quantity: item.quantity,
+      inStock: item.quantity > 0,
       category: item.category,
       images: item.images,
       reviewCount,

@@ -24,6 +24,8 @@ import {
   ChevronRight,
   Star,
   Package,
+  PackageCheck,
+  PackageX,
   X,
   RotateCcw,
   ChevronDown,
@@ -55,7 +57,7 @@ type CatalogItem = {
   wholesalePrice: number;
   wholesaleMinQuantity: number;
   discount: number | null;
-  quantity: number;
+  inStock: boolean;
   category: { id: string; name: string };
   images: { id: string; image: string; detail: string | null; isPrimary: boolean; index: number }[];
   reviewCount: number;
@@ -385,11 +387,17 @@ function ProductCard({ item, index }: { item: CatalogItem; index: number }) {
             ) : null}
           </div>
 
-          {item.quantity > 0 && item.quantity <= 5 ? (
-            <div className="absolute bottom-0 inset-x-0 bg-amber-500/90 text-white text-[10px] sm:text-xs text-center py-0.5 sm:py-1 font-medium">
-              Only {item.quantity} left
-            </div>
-          ) : null}
+          <div className="absolute bottom-0 inset-x-0 text-center py-0.5 sm:py-1 font-medium text-[10px] sm:text-xs bg-black/55 text-white backdrop-blur-sm">
+            {item.inStock ? (
+              <span className="inline-flex items-center gap-1">
+                <PackageCheck className="h-3 w-3" /> In Stock
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1">
+                <PackageX className="h-3 w-3" /> Out of Stock
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Content */}

@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         tags: product.tags,
         retailPrice: product.retailPrice,
         discount: product.discount,
-        quantity: product.quantity,
+        inStock: product.quantity > 0,
         category: product.category,
         images: product.images,
         reviewCount,

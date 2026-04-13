@@ -13,6 +13,8 @@ import {
   Flame,
   Sparkles,
   Package,
+  PackageCheck,
+  PackageX,
   Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,7 +41,7 @@ type CatalogItem = {
   wholesalePrice: number;
   wholesaleMinQuantity: number;
   discount?: number;
-  quantity: number;
+  inStock: boolean;
   category: { id: string; name: string };
   images: CatalogProductImage[];
   reviewCount: number;
@@ -123,12 +125,17 @@ function ProductCard({ item, index }: { item: CatalogItem; index: number }) {
               -{Math.round(item.discount)}%
             </div>
           ) : null}
-          {/* Low stock */}
-          {item.quantity > 0 && item.quantity <= 5 ? (
-            <div className="absolute bottom-0 inset-x-0 bg-amber-500/90 text-white text-[10px] sm:text-xs text-center py-0.5 sm:py-1 font-medium">
-              Only {item.quantity} left
-            </div>
-          ) : null}
+          <div className="absolute bottom-0 inset-x-0 text-center py-0.5 sm:py-1 font-medium text-[10px] sm:text-xs bg-black/55 text-white backdrop-blur-sm">
+            {item.inStock ? (
+              <span className="inline-flex items-center gap-1">
+                <PackageCheck className="h-3 w-3" /> In Stock
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1">
+                <PackageX className="h-3 w-3" /> Out of Stock
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Content */}

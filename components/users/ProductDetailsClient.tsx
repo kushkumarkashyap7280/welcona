@@ -268,16 +268,10 @@ function StockBadge({ quantity }: { quantity: number }) {
       </span>
     );
   }
-  if (quantity <= 5) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-        <AlertTriangle className="h-3.5 w-3.5" /> Only {quantity} left
-      </span>
-    );
-  }
+
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-      <PackageCheck className="h-3.5 w-3.5" /> {quantity} in stock
+      <PackageCheck className="h-3.5 w-3.5" /> In Stock
     </span>
   );
 }

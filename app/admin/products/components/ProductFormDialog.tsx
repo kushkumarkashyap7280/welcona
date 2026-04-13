@@ -293,7 +293,7 @@ export function ProductFormDialog({
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="retailPrice">Retail Price ($)</Label>
+              <Label htmlFor="retailPrice">Retail Price (INR)</Label>
               <Input id="retailPrice" type="number" step="0.01" {...form.register("retailPrice")} />
               {form.formState.errors.retailPrice && (
                 <p className="text-[0.8rem] font-medium text-destructive">{form.formState.errors.retailPrice.message}</p>
@@ -301,7 +301,7 @@ export function ProductFormDialog({
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="wholesalePrice">Wholesale Price ($)</Label>
+              <Label htmlFor="wholesalePrice">Wholesale Price (INR)</Label>
               <Input id="wholesalePrice" type="number" step="0.01" {...form.register("wholesalePrice")} />
               {form.formState.errors.wholesalePrice && (
                 <p className="text-[0.8rem] font-medium text-destructive">{form.formState.errors.wholesalePrice.message}</p>
