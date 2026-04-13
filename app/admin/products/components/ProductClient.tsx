@@ -20,7 +20,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -328,7 +327,7 @@ export function ProductClient({ categories }: ProductClientProps) {
                           </TableCell>
                           <TableCell>{product.category.name}</TableCell>
                           <TableCell className="text-right font-medium">
-                            <div>${product.retailPrice.toFixed(2)}</div>
+                            <div>₹{product.retailPrice.toFixed(2)}</div>
                             {product.discount ? (
                               <div className="text-xs text-emerald-600">-{product.discount}% off</div>
                             ) : null}

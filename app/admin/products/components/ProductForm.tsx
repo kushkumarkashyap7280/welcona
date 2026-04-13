@@ -7,7 +7,7 @@ import * as z from "zod";
 import { toast } from "sonner";
 import {
   Loader2, Plus, Star, X, ArrowLeft, Package,
-  DollarSign, Tags, ImageIcon, FileText, Settings
+  IndianRupee, Tags, ImageIcon, FileText, Settings
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -383,13 +383,13 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5" />
+                  <IndianRupee className="w-5 h-5" />
                   Pricing
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="retailPrice">Retail Price *</Label>
+                  <Label htmlFor="retailPrice">Retail Price (₹) *</Label>
                   <Input
                     id="retailPrice"
                     type="number"
@@ -406,7 +406,7 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="wholesalePrice">Wholesale Price *</Label>
+                  <Label htmlFor="wholesalePrice">Wholesale Price (₹) *</Label>
                   <Input
                     id="wholesalePrice"
                     type="number"
