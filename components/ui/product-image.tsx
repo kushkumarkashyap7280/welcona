@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import { Package } from "lucide-react";
+import { normalizeImageSrc } from "@/lib/utils";
 
 interface ProductImageProps {
   src: string;
@@ -25,9 +26,11 @@ function ProductImageFallback({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
 }
 
 function ProductImageInner({ src, alt, className = "" }: Omit<ProductImageProps, 'fallbackSize'>) {
+  const normalizedSrc = normalizeImageSrc(src);
+
   return (
     <img
-      src={src}
+      src={normalizedSrc}
       alt={alt}
       className={className}
       loading="lazy"

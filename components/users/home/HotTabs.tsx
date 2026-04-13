@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { motion, type Variants } from "framer-motion";
@@ -19,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { normalizeImageSrc } from "@/lib/utils";
 import type { HotTabItem } from "@/lib/home-config";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -107,7 +107,7 @@ function ProductCard({ item, index }: { item: CatalogItem; index: number }) {
           {primaryImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={primaryImage}
+              src={normalizeImageSrc(primaryImage)}
               alt={item.name}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               loading="lazy"

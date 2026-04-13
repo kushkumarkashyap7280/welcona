@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { CategoriesConfig } from "@/lib/home-config";
+import { isGoogleHostedImageSrc, normalizeImageSrc } from "@/lib/utils";
 
 const sectionVariants: Variants = {
   hidden: { opacity: 0, y: 50 },
@@ -91,9 +92,10 @@ export function CategorySection({ config }: Props) {
                   className="relative group overflow-hidden rounded-3xl aspect-4/3 shadow-2xl"
                 >
                   <Image
-                    src={cat.image}
+                    src={normalizeImageSrc(cat.image)}
                     alt={cat.title}
                     fill
+                    unoptimized={isGoogleHostedImageSrc(cat.image)}
                     className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     sizes="(max-width: 1024px) 100vw, 50vw"
                   />

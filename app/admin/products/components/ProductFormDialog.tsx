@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { createProductAction, updateProductAction } from "@/lib/actions/products";
+import { normalizeImageSrc } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -384,7 +385,7 @@ export function ProductFormDialog({
                 <div key={`${index}-${image.image}`} className="grid gap-4 rounded-xl border border-border/70 bg-muted/20 p-4 md:grid-cols-[120px_1fr]">
                   <div className="overflow-hidden rounded-lg border border-border/60 bg-background">
                     {image.image ? (
-                      <img src={image.image} alt="Product preview" className="h-28 w-full object-cover" />
+                      <img src={normalizeImageSrc(image.image)} alt="Product preview" className="h-28 w-full object-cover" />
                     ) : (
                       <div className="flex h-28 items-center justify-center text-xs text-muted-foreground">
                         Preview
@@ -398,7 +399,7 @@ export function ProductFormDialog({
                           <Label htmlFor={`image-${index}`}>Image URL</Label>
                           <Input
                             id={`image-${index}`}
-                            placeholder="https://images.unsplash.com/..."
+                            placeholder="https://drive.google.com/file/d/.../view or https://images.unsplash.com/..."
                             value={image.image}
                             onChange={(event) => updateImageField(index, "image", event.target.value)}
                           />

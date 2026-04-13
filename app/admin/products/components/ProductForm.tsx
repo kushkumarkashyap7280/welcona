@@ -496,7 +496,7 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
                       <Input
                         value={image.image}
                         onChange={(e) => updateImage(index, "image", e.target.value)}
-                        placeholder="https://example.com/image.jpg"
+                        placeholder="https://drive.google.com/file/d/.../view or https://images.unsplash.com/..."
                       />
                     </div>
 

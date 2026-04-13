@@ -6,6 +6,7 @@ import { motion, type Variants } from "framer-motion";
 import { ArrowRight, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { OffersBannerConfig } from "@/lib/home-config";
+import { isGoogleHostedImageSrc, normalizeImageSrc } from "@/lib/utils";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -22,6 +23,8 @@ interface Props {
 }
 
 export function OffersBanner({ config }: Props) {
+  const imageSrc = normalizeImageSrc(config.backgroundImage);
+
   return (
     <section className="py-6">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -35,9 +38,10 @@ export function OffersBanner({ config }: Props) {
           {/* Background */}
           <div className="absolute inset-0 z-0">
             <Image
-              src={config.backgroundImage}
+              src={imageSrc}
               alt="Offers background"
               fill
+              unoptimized={isGoogleHostedImageSrc(imageSrc)}
               className="object-cover"
               sizes="(max-width: 1280px) 100vw, 1280px"
             />

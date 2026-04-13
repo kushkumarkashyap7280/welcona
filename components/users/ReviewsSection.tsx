@@ -29,6 +29,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ReviewForm } from "./ReviewForm";
 import { cn } from "@/lib/utils";
+import { normalizeImageSrc } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -227,7 +228,7 @@ function ReviewCard({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={review.imageUrl}
+                src={normalizeImageSrc(review.imageUrl)}
                 alt="Review photo"
                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                 loading="lazy"
@@ -254,7 +255,7 @@ function ReviewCard({
           {imagePreview && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={imagePreview}
+              src={normalizeImageSrc(imagePreview)}
               alt="Review photo enlarged"
               className="w-full max-h-[70vh] object-contain rounded-xl"
             />

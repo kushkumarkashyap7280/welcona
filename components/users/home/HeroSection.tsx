@@ -6,6 +6,7 @@ import { motion, type Variants } from "framer-motion";
 import { ArrowRight, Sparkles, ShieldCheck, Truck, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { HeroConfig } from "@/lib/home-config";
+import { isGoogleHostedImageSrc, normalizeImageSrc } from "@/lib/utils";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -28,6 +29,7 @@ interface Props {
 
 export function HeroSection({ config }: Props) {
   const headlineLines = config.headline.split("\\n");
+  const imageSrc = normalizeImageSrc(config.backgroundImage);
 
   return (
     <section className="relative min-h-[92vh] flex items-center overflow-hidden">
@@ -39,10 +41,11 @@ export function HeroSection({ config }: Props) {
         animate="visible"
       >
         <Image
-          src={config.backgroundImage}
+          src={imageSrc}
           alt="Luxury bathroom"
           fill
           priority
+          unoptimized={isGoogleHostedImageSrc(imageSrc)}
           className="object-cover"
           sizes="100vw"
         />

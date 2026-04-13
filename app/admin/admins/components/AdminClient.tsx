@@ -80,7 +80,7 @@ export function AdminClient({ data, isSuperAdmin, currentUserId }: AdminClientPr
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="w-[300px] py-4">Admin Detail</TableHead>
+                <TableHead className="w-75 py-4">Admin Detail</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>System Access Date</TableHead>
                 <TableHead className="text-right py-4">Actions</TableHead>

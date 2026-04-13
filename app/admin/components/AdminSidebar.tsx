@@ -11,7 +11,6 @@ import {
   LogOut,
   Settings,
   ShoppingBag,
-  Home,
   Menu,
   X
 } from "lucide-react";
@@ -27,7 +26,6 @@ const navItems = [
   { name: "Categories", href: "/admin/categories", icon: Tags },
   { name: "Users", href: "/admin/users", icon: Users },
   { name: "Admins", href: "/admin/admins", icon: Settings },
-  { name: "Home Page", href: "/admin/home-page", icon: Home },
 ];
 
 export function AdminSidebar({ children }: { children?: React.ReactNode }) {

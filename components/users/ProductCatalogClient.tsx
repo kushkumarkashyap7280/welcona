@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { isGoogleHostedImageSrc, normalizeImageSrc } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -169,6 +170,7 @@ function HeroSlider({ total }: { total: number }) {
   }, [current, go, prefersReduced]);
 
   const slide = HERO_IMAGES[current];
+  const slideImageSrc = normalizeImageSrc(slide.url);
 
   return (
     <div className="relative h-72 sm:h-80 md:h-96 overflow-hidden bg-muted select-none">
@@ -183,9 +185,10 @@ function HeroSlider({ total }: { total: number }) {
           className="absolute inset-0"
         >
           <Image
-            src={slide.url}
+            src={slideImageSrc}
             alt={slide.title}
             fill
+            unoptimized={isGoogleHostedImageSrc(slideImageSrc)}
             className="object-cover"
             priority={current === 0}
             sizes="100vw"
@@ -359,7 +362,7 @@ function ProductCard({ item, index }: { item: CatalogItem; index: number }) {
           {primaryImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={primaryImage.image}
+              src={normalizeImageSrc(primaryImage.image)}
               alt={item.name}
               loading="lazy"
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"

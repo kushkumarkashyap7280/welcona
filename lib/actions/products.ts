@@ -3,6 +3,7 @@
 import prisma from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import { revalidatePath } from "next/cache";
+import { normalizeImageSrc } from "@/lib/utils";
 
 type ProductImageInput = {
   image?: string;
@@ -35,7 +36,7 @@ function isPrismaKnownError(error: unknown): error is { code: string } {
 function normalizeProductPayload(data: ProductActionInput) {
   const images = (Array.isArray(data.images) ? data.images : [])
     .map((image: ProductImageInput, index: number) => ({
-      image: image.image?.trim() ?? "",
+      image: normalizeImageSrc(image.image ?? ""),
       detail: image.detail?.trim() || null,
       isPrimary: Boolean(image.isPrimary),
       index: Number.isFinite(image.index) ? Number(image.index) : index,
