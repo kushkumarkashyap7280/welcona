@@ -3,7 +3,12 @@
 import prisma from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import { revalidatePath } from "next/cache";
-import { normalizeImageSrc } from "@/lib/utils";
+import { createSupabaseServiceClient } from "@/lib/supabase";
+import {
+  getSupabaseStorageBucket,
+  isSupabaseStoragePath,
+  normalizeImageValueForStorage,
+} from "@/lib/utils";
 
 type ProductImageInput = {
   image?: string;
@@ -36,7 +41,7 @@ function isPrismaKnownError(error: unknown): error is { code: string } {
 function normalizeProductPayload(data: ProductActionInput) {
   const images = (Array.isArray(data.images) ? data.images : [])
     .map((image: ProductImageInput, index: number) => ({
-      image: normalizeImageSrc(image.image ?? ""),
+      image: normalizeImageValueForStorage(image.image ?? ""),
       detail: image.detail?.trim() || null,
       isPrimary: Boolean(image.isPrimary),
       index: Number.isFinite(image.index) ? Number(image.index) : index,
@@ -73,6 +78,25 @@ function normalizeProductPayload(data: ProductActionInput) {
       .filter(Boolean),
     images,
   };
+}
+
+function extractStoragePaths(values: string[]) {
+  return [...new Set(values.filter((value) => isSupabaseStoragePath(value)))];
+}
+
+async function removeProductImageFiles(paths: string[]) {
+  const filesToDelete = extractStoragePaths(paths);
+  if (filesToDelete.length === 0) {
+    return;
+  }
+
+  try {
+    const bucket = getSupabaseStorageBucket();
+    const supabase = createSupabaseServiceClient();
+    await supabase.storage.from(bucket).remove(filesToDelete);
+  } catch (error) {
+    console.error("Failed to remove product image files:", error);
+  }
 }
 
 async function requireAdmin() {
@@ -121,6 +145,18 @@ export async function updateProductAction(id: string, data: ProductActionInput) 
   await requireAdmin();
   try {
     const payload = normalizeProductPayload(data);
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      select: {
+        images: {
+          select: { image: true },
+        },
+      },
+    });
+
+    const existingPaths = new Set((existingProduct?.images ?? []).map((item) => item.image));
+    const nextPaths = new Set(payload.images.map((item) => item.image));
+    const removedPaths = [...existingPaths].filter((path) => !nextPaths.has(path));
 
     const product = await prisma.product.update({
       where: { id },
@@ -144,6 +180,9 @@ export async function updateProductAction(id: string, data: ProductActionInput) 
         },
       },
     });
+
+    await removeProductImageFiles(removedPaths);
+
     revalidatePath("/admin/products");
     revalidatePath("/products");
     revalidatePath(`/products/${id}`);
@@ -157,7 +196,20 @@ export async function updateProductAction(id: string, data: ProductActionInput) 
 export async function deleteProductAction(id: string) {
   await requireAdmin();
   try {
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      select: {
+        images: {
+          select: { image: true },
+        },
+      },
+    });
+
+    const paths = (existingProduct?.images ?? []).map((item) => item.image);
+
     await prisma.product.delete({ where: { id } });
+    await removeProductImageFiles(paths);
+
     revalidatePath("/admin/products");
     revalidatePath("/products");
     revalidatePath(`/products/${id}`);

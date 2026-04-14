@@ -86,7 +86,7 @@ export function CategoryClient({ data }: CategoryClientProps) {
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="w-[300px] py-4">Name</TableHead>
+                <TableHead className="w-75 py-4">Name</TableHead>
                 <TableHead>Products</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right py-4">Actions</TableHead>
