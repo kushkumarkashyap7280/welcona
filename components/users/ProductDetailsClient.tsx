@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProductImage } from "@/components/ui/product-image";
 import { ReviewsSection } from "./ReviewsSection";
+import { ProductShareButton } from "./ProductShareButton";
 import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -528,6 +529,13 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
                 ))}
               </div>
             )}
+
+            <ProductShareButton
+              product={{
+                id: product.id,
+                name: product.name,
+              }}
+            />
           </div>
 
           {/* Trust cards */}
