@@ -5,7 +5,7 @@ import { Controller, type Resolver, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Loader2, Plus, Star, X } from "lucide-react";
+import { Loader2, Plus, Star, Upload, X } from "lucide-react";
 
 import {
   Dialog,
@@ -27,6 +27,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { createProductAction, updateProductAction } from "@/lib/actions/products";
 import { normalizeImageSrc } from "@/lib/utils";
+import { createSupabaseBrowserClient } from "@/lib/supabase";
+
+const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
 
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -112,6 +115,7 @@ export function ProductFormDialog({
   categories,
 }: ProductFormDialogProps) {
   const [images, setImages] = useState<ProductImageField[]>(() => getDefaultImages(initialData));
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(formSchema) as Resolver<ProductFormValues>,
@@ -166,6 +170,59 @@ export function ProductFormDialog({
         isPrimary: currentIndex === index,
       }))
     );
+  };
+
+  const uploadImageAtIndex = async (index: number, file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Only image files are allowed.");
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      toast.error("Image must be 2MB or smaller.");
+      return;
+    }
+
+    setUploadingIndex(index);
+    try {
+      const signRes = await fetch("/api/admin/uploads/product-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type,
+          size: file.size,
+        }),
+      });
+
+      const signPayload = (await signRes.json()) as {
+        error?: string;
+        bucket?: string;
+        path?: string;
+        token?: string;
+      };
+
+      if (!signRes.ok || !signPayload.bucket || !signPayload.path || !signPayload.token) {
+        throw new Error(signPayload.error || "Could not prepare upload.");
+      }
+
+      const supabase = createSupabaseBrowserClient();
+      const { error: uploadError } = await supabase.storage
+        .from(signPayload.bucket)
+        .uploadToSignedUrl(signPayload.path, signPayload.token, file);
+
+      if (uploadError) {
+        throw new Error(uploadError.message);
+      }
+
+      updateImageField(index, "image", signPayload.path);
+      toast.success("Image uploaded");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Image upload failed.";
+      toast.error(message);
+    } finally {
+      setUploadingIndex(null);
+    }
   };
 
   const onSubmit = async (data: ProductFormValues) => {
@@ -399,10 +456,33 @@ export function ProductFormDialog({
                           <Label htmlFor={`image-${index}`}>Image URL</Label>
                           <Input
                             id={`image-${index}`}
-                            placeholder="https://drive.google.com/file/d/.../view or https://images.unsplash.com/..."
+                            placeholder="Storage path or image URL"
                             value={image.image}
                             onChange={(event) => updateImageField(index, "image", event.target.value)}
                           />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label htmlFor={`upload-image-${index}`}>Upload Image (max 2MB)</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id={`upload-image-${index}`}
+                              type="file"
+                              accept="image/*"
+                              disabled={uploadingIndex === index}
+                              onChange={(event) => {
+                                const file = event.target.files?.[0];
+                                if (file) {
+                                  void uploadImageAtIndex(index, file);
+                                }
+                                event.currentTarget.value = "";
+                              }}
+                            />
+                            {uploadingIndex === index ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            ) : (
+                              <Upload className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
                         </div>
                         <div className="space-y-2 md:col-span-2">
                           <Label htmlFor={`detail-${index}`}>Image Note</Label>

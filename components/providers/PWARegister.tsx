@@ -8,6 +8,20 @@ export function PWARegister() {
       return;
     }
 
+    if (process.env.NODE_ENV !== "production") {
+      const unregisterAll = async () => {
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((reg) => reg.unregister()));
+        } catch {
+          // Ignore failures in dev cleanup.
+        }
+      };
+
+      void unregisterAll();
+      return;
+    }
+
     const register = async () => {
       try {
         await navigator.serviceWorker.register("/sw.js", { scope: "/" });

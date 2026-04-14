@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Controller, type Resolver, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import {
-  Loader2, Plus, Star, X, ArrowLeft, Package,
+  Loader2, Plus, Star, ArrowLeft, Package, Upload, Trash2,
   IndianRupee, Tags, ImageIcon, FileText, Settings
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -26,6 +26,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createProductAction, updateProductAction } from "@/lib/actions/products";
 import { ProductImage } from "@/components/ui/product-image";
+import { createSupabaseBrowserClient } from "@/lib/supabase";
+import { isSupabaseStoragePath } from "@/lib/utils";
+
+const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
 
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -106,6 +110,8 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
   const router = useRouter();
   const [images, setImages] = useState<ProductImageField[]>(() => getDefaultImages(initialData || null));
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const fileInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(formSchema) as Resolver<ProductFormValues>,
@@ -131,7 +137,7 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
     setImages([...images, createEmptyImage(!hasPrimary)]);
   };
 
-  const removeImage = (index: number) => {
+  const removeImageState = (index: number) => {
     const newImages = images.filter((_, i) => i !== index);
 
     // If we removed the primary image, make the first image primary
@@ -140,6 +146,42 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
     }
 
     setImages(newImages.length > 0 ? newImages : [createEmptyImage(true)]);
+  };
+
+  const deleteImageFromStorage = async (path: string) => {
+    if (!isSupabaseStoragePath(path)) {
+      return;
+    }
+
+    const response = await fetch("/api/admin/uploads/product-image", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json()) as { error?: string };
+      throw new Error(payload.error || "Failed to delete previous image from storage.");
+    }
+  };
+
+  const deleteImageAtIndex = async (index: number) => {
+    const current = images[index];
+    if (!current) {
+      return;
+    }
+
+    const currentPath = current.image.trim();
+    try {
+      if (currentPath) {
+        await deleteImageFromStorage(currentPath);
+      }
+      removeImageState(index);
+      toast.success("Image deleted");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete image.";
+      toast.error(message);
+    }
   };
 
   const updateImage = (index: number, field: keyof ProductImageField, value: string | boolean) => {
@@ -155,6 +197,71 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
     }
 
     setImages(newImages);
+  };
+
+  const uploadImageAtIndex = async (index: number, file: File, replaceExisting = false) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Only image files are allowed.");
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      toast.error("Image must be 2MB or smaller.");
+      return;
+    }
+
+    const previousPath = images[index]?.image.trim() ?? "";
+
+    setUploadingIndex(index);
+    try {
+      const signRes = await fetch("/api/admin/uploads/product-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type,
+          size: file.size,
+        }),
+      });
+
+      const signPayload = (await signRes.json()) as {
+        error?: string;
+        bucket?: string;
+        path?: string;
+        token?: string;
+      };
+
+      if (!signRes.ok || !signPayload.bucket || !signPayload.path || !signPayload.token) {
+        throw new Error(signPayload.error || "Could not prepare upload.");
+      }
+
+      const supabase = createSupabaseBrowserClient();
+      const { error: uploadError } = await supabase.storage
+        .from(signPayload.bucket)
+        .uploadToSignedUrl(signPayload.path, signPayload.token, file);
+
+      if (uploadError) {
+        throw new Error(uploadError.message);
+      }
+
+      updateImage(index, "image", signPayload.path);
+
+      if (replaceExisting && previousPath && previousPath !== signPayload.path) {
+        try {
+          await deleteImageFromStorage(previousPath);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to delete previous image.";
+          toast.error(message);
+        }
+      }
+
+      toast.success(replaceExisting ? "Image replaced" : "Image uploaded");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Image upload failed.";
+      toast.error(message);
+    } finally {
+      setUploadingIndex(null);
+    }
   };
 
   const onSubmit = async (data: ProductFormValues) => {
@@ -377,7 +484,7 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
             </Card>
           </div>
 
-          {/* Right Column - Pricing & Images */}
+          {/* Right Column - Pricing */}
           <div className="space-y-6">
             {/* Pricing */}
             <Card>
@@ -458,96 +565,6 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
               </CardContent>
             </Card>
 
-            {/* Product Images */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5" />
-                  Product Images
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {images.map((image, index) => (
-                  <div key={index} className="p-4 border rounded-lg space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">Image {index + 1}</span>
-                        {image.isPrimary && (
-                          <div className="flex items-center gap-1 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
-                            <Star className="w-3 h-3" />
-                            Primary
-                          </div>
-                        )}
-                      </div>
-                      {images.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeImage(index)}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Image URL *</Label>
-                      <Input
-                        value={image.image}
-                        onChange={(e) => updateImage(index, "image", e.target.value)}
-                        placeholder="https://drive.google.com/file/d/.../view or https://images.unsplash.com/..."
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Image Description</Label>
-                      <Input
-                        value={image.detail}
-                        onChange={(e) => updateImage(index, "detail", e.target.value)}
-                        placeholder="Brief description of the image"
-                      />
-                    </div>
-
-                    {/* Image Preview with Suspense */}
-                    {image.image && (
-                      <div className="mt-3">
-                        <ProductImage
-                          src={image.image}
-                          alt={`Product image ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-md border"
-                          fallbackSize="lg"
-                        />
-                      </div>
-                    )}
-
-                    {!image.isPrimary && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateImage(index, "isPrimary", true)}
-                        className="w-full"
-                      >
-                        <Star className="w-4 h-4 mr-2" />
-                        Set as Primary Image
-                      </Button>
-                    )}
-                  </div>
-                ))}
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addImage}
-                  className="w-full"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Another Image
-                </Button>
-              </CardContent>
-            </Card>
-
             {/* Form Actions */}
             <Card>
               <CardContent className="pt-6 space-y-4">
@@ -573,6 +590,150 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
             </Card>
           </div>
         </div>
+
+        {/* Product Images */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5" />
+              Product Images
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4 overflow-x-auto pb-2">
+              {images.map((image, index) => (
+                <div key={index} className="min-w-[320px] max-w-[320px] shrink-0 p-4 border rounded-lg space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">Image {index + 1}</span>
+                      {image.isPrimary && (
+                        <div className="flex items-center gap-1 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                          <Star className="w-3 h-3" />
+                          Primary
+                        </div>
+                      )}
+                    </div>
+                    {uploadingIndex === index && (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+
+                  <Input
+                    ref={(element) => {
+                      fileInputRefs.current[index] = element;
+                    }}
+                    id={`upload-image-${index}`}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploadingIndex === index}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const hasExistingPath = image.image.trim().length > 0;
+                        void uploadImageAtIndex(index, file, hasExistingPath);
+                      }
+                      e.currentTarget.value = "";
+                    }}
+                  />
+
+                  {!image.image ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => fileInputRefs.current[index]?.click()}
+                      disabled={uploadingIndex === index}
+                    >
+                      {uploadingIndex === index ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Image
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => fileInputRefs.current[index]?.click()}
+                        disabled={uploadingIndex === index}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Replace
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => void deleteImageAtIndex(index)}
+                        disabled={uploadingIndex === index}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label>Image Description</Label>
+                    <Input
+                      value={image.detail}
+                      onChange={(e) => updateImage(index, "detail", e.target.value)}
+                      placeholder="Brief description of the image"
+                    />
+                  </div>
+
+                  {image.image && (
+                    <div className="mt-3">
+                      <ProductImage
+                        src={image.image}
+                        alt={`Product image ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-md border"
+                        fallbackSize="lg"
+                      />
+                    </div>
+                  )}
+
+                  {!image.isPrimary && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => updateImage(index, "isPrimary", true)}
+                      className="w-full"
+                    >
+                      <Star className="w-4 h-4 mr-2" />
+                      Set as Primary Image
+                    </Button>
+                  )}
+                </div>
+              ))}
+
+              <div className="min-w-55 shrink-0 flex items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addImage}
+                  className="w-full"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Another Image
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </form>
     </div>
   );
