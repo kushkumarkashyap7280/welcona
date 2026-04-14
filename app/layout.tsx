@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   },
   description:
     "Welcona luxury bath fittings — premium design, modern engineering, and reliable quality.",
-  // manifest: "/manifest.webmanifest",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/icon",
     apple: "/apple-icon",
