@@ -55,6 +55,15 @@ export function AdminLoginModal() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  useEffect(() => {
+    const handleOpenRequest = () => {
+      setOpen(true);
+    };
+
+    window.addEventListener("welcona:open-admin-login", handleOpenRequest);
+    return () => window.removeEventListener("welcona:open-admin-login", handleOpenRequest);
+  }, []);
+
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {

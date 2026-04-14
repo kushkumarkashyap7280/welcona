@@ -13,11 +13,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "drive.google.com",
-      },
-      {
-        protocol: "https",
-        hostname: "**.googleusercontent.com",
+        hostname: "**.supabase.co",
       },
     ],
   },

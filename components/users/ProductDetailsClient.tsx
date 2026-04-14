@@ -31,7 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProductImage } from "@/components/ui/product-image";
 import { ReviewsSection } from "./ReviewsSection";
 import { ProductShareButton } from "./ProductShareButton";
-import { cn } from "@/lib/utils";
+import { cn, normalizeImageSrc } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -308,7 +308,12 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
   const orderedImages = useMemo(
     () =>
       product
-        ? [...product.images].sort(
+        ? [...product.images]
+            .map((image) => ({
+              ...image,
+              image: normalizeImageSrc(image.image),
+            }))
+            .sort(
             (a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.index - b.index
           )
         : [],
@@ -530,12 +535,12 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
               </div>
             )}
 
-            <ProductShareButton
+            {/* <ProductShareButton
               product={{
                 id: product.id,
                 name: product.name,
               }}
-            />
+            /> */}
           </div>
 
           {/* Trust cards */}

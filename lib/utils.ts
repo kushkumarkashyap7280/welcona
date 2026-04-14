@@ -11,17 +11,6 @@ function isHttpUrl(value: string) {
   return /^https?:\/\//i.test(value);
 }
 
-function normalizeDriveShareUrl(url: URL) {
-  const fileIdFromPath = url.pathname.match(/\/file\/d\/([^/]+)/)?.[1];
-  const fileId = fileIdFromPath ?? url.searchParams.get("id");
-
-  if (!fileId) {
-    return url.toString();
-  }
-
-  return `https://drive.google.com/thumbnail?id=${fileId}&sz=w2000`;
-}
-
 export function getSupabaseStorageBucket() {
   return process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET
     ?? process.env.SUPABASE_STORAGE_BUCKET
@@ -39,18 +28,7 @@ export function normalizeImageValueForStorage(src: string) {
     return trimmed.replace(/^\/+/, "");
   }
 
-  try {
-    const url = new URL(trimmed);
-    const hostname = url.hostname.toLowerCase();
-
-    if (hostname === "drive.google.com") {
-      return normalizeDriveShareUrl(url);
-    }
-
-    return trimmed;
-  } catch {
-    return trimmed;
-  }
+  return trimmed;
 }
 
 export function normalizeImageSrc(src: string) {
