@@ -101,8 +101,3 @@ export type OrderItem = Prisma.OrderItemModel
  * 
  */
 export type UserNotification = Prisma.UserNotificationModel
-/**
- * Model SiteConfig
- * 
- */
-export type SiteConfig = Prisma.SiteConfigModel
