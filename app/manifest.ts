@@ -7,7 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description:
       "Welcona luxury bath fittings - premium design, modern engineering, and reliable quality.",
     start_url: "/",
-    display: "standalone",
+    // display: "standalone",
+    display : "browser",
     background_color: "#0f172a",
     theme_color: "#0f172a",
     icons: [
