@@ -4,10 +4,6 @@ import { signToken, COOKIE_NAME } from "@/lib/session";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!;
-const GOOGLE_REDIRECT_URI =
-  process.env.NODE_ENV === "production"
-    ? "https://welcona.vercel.app/api/auth/google/callback"
-    : "http://localhost:3000/api/auth/google/callback";
 
 type GoogleTokenResponse = {
   access_token: string;
@@ -26,6 +22,7 @@ type GoogleUserInfo = {
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
   const state = req.nextUrl.searchParams.get("state") || "/dashboard";
+  const redirectUri = `${req.nextUrl.origin}/api/auth/google/callback`;
 
   if (!code) {
     return NextResponse.redirect(
@@ -42,7 +39,7 @@ export async function GET(req: NextRequest) {
         code,
         client_id: GOOGLE_CLIENT_ID,
         client_secret: GOOGLE_CLIENT_SECRET,
-        redirect_uri: GOOGLE_REDIRECT_URI,
+        redirect_uri: redirectUri,
         grant_type: "authorization_code",
       }),
     });
