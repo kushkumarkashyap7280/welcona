@@ -216,7 +216,10 @@ export function AdminLoginModal() {
                   <Label htmlFor="password">Password</Label>
                   <button 
                     type="button" 
-                    onClick={() => { setStep("forgot-email"); setResetEmail(loginForm.getValues().email); }} 
+                    onClick={() => {
+                      setStep("forgot-email");
+                      setResetEmail(loginForm.getValues("email") ?? "");
+                    }} 
                     className="text-xs text-primary hover:underline underline-offset-4"
                   >
                     Forgot password?
