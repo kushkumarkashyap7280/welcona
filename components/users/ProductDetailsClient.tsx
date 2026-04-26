@@ -151,7 +151,7 @@ function ProductGallery({ images, name }: { images: ProductImg[]; name: string }
   return (
     <div className="space-y-3">
       {/* Main frame */}
-      <div className="relative overflow-hidden rounded-[2rem] border border-border/70 bg-card/90 shadow-sm aspect-4/3">
+      <div className="relative overflow-hidden rounded-[2rem] border border-border/70 bg-card/90 shadow-sm aspect-square">
         <AnimatePresence initial={false} custom={direction} mode="popLayout">
           <motion.div
             key={current}
