@@ -11,6 +11,13 @@ function isHttpUrl(value: string) {
   return /^https?:\/\//i.test(value);
 }
 
+function normalizeSupabaseUrl(rawUrl: string) {
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return "";
+  const withProtocol = isHttpUrl(trimmed) ? trimmed : `https://${trimmed}`;
+  return withProtocol.replace(/\/+$/, "");
+}
+
 export function getSupabaseStorageBucket() {
   return process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET
     ?? process.env.SUPABASE_STORAGE_BUCKET
@@ -42,7 +49,7 @@ export function normalizeImageSrc(src: string) {
     return normalized;
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseUrl = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
   if (!supabaseUrl) {
     return normalized;
   }

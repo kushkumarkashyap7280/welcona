@@ -2,11 +2,22 @@ import { createClient } from "@supabase/supabase-js";
 
 let browserClient: ReturnType<typeof createClient> | null = null;
 
+function normalizeSupabaseUrl(rawUrl: string) {
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return "";
+
+  const withProtocol = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  return withProtocol.replace(/\/+$/, "");
+}
+
 
 
 export function createSupabaseBrowserClient() {
   if (!browserClient) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+    const supabaseUrl = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
     if (!supabaseUrl || !supabaseAnonKey) {
@@ -25,7 +36,7 @@ export function createSupabaseServiceClient() {
     throw new Error("createSupabaseServiceClient can only be used on the server.");
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const supabaseUrl = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
   if (!supabaseUrl || !serviceRoleKey) {
