@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/components/providers/AppProviders";
 import { PWARegister } from "@/components/providers/PWARegister";
+import RedirectCountDown from "@/components/ui/RedirectCountDown";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,6 +45,7 @@ export default function RootLayout({
       >
         <AppProviders>{children}</AppProviders>
         {/* <PWARegister /> */}
+        <RedirectCountDown />
       </body>
     </html>
   );
