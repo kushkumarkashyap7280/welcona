@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion, type Variants, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { isGoogleHostedImageSrc, normalizeImageSrc } from "@/lib/utils";
 
 const HERO_IMAGES = [
   { url: "/productCatelogAnimationImages/image1.png", title: "Luxury Bath Fittings", subtitle: "Crafted for lasting elegance, delivered direct from factory" },
@@ -25,6 +24,7 @@ const textVariants: Variants = { hidden: { opacity: 0, y: 24 }, visible: { opaci
 export default function HeroSlider() {
   const [current, setCurrent] = useState(0);
   const [dir, setDir] = useState(1);
+  const [loadedSlides, setLoadedSlides] = useState<boolean[]>(() => Array(HERO_IMAGES.length).fill(false));
   const prefersReduced = useReducedMotion();
 
   const go = useCallback((next: number) => {
@@ -40,18 +40,47 @@ export default function HeroSlider() {
   }, [current, go, prefersReduced]);
 
   const slide = HERO_IMAGES[current];
-  const slideImageSrc = typeof slide.url === "string" && slide.url.startsWith("http") ? normalizeImageSrc(slide.url) : slide.url;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const updateLoaded = (index: number) => {
+      if (cancelled) return;
+      setLoadedSlides((previous) => {
+        if (previous[index]) return previous;
+        const next = [...previous];
+        next[index] = true;
+        return next;
+      });
+    };
+
+    HERO_IMAGES.forEach((item, index) => {
+      const preloadImage = new window.Image();
+      preloadImage.src = item.url;
+      if (preloadImage.complete) {
+        updateLoaded(index);
+      } else {
+        preloadImage.onload = () => updateLoaded(index);
+        preloadImage.onerror = () => updateLoaded(index);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
-    <div className="relative h-72 sm:h-80 md:h-96 overflow-hidden bg-muted select-none">
+    <div className="relative h-72 sm:h-80 md:h-96 overflow-hidden bg-[#e8dcc8] select-none">
       <AnimatePresence initial={false} custom={dir} mode="sync">
         <motion.div key={current} custom={dir} variants={prefersReduced ? {} : slideVariants} initial="enter" animate="center" exit="exit" className="absolute inset-0">
-          <Image src={slideImageSrc} alt={slide.title} fill unoptimized={isGoogleHostedImageSrc(slideImageSrc)} className="object-cover" priority={current === 0} sizes="100vw" />
+          <Image src={slide.url} alt={slide.title} fill className="object-cover" priority={current === 0} sizes="100vw" />
+          <div className="absolute inset-0 bg-black/20" />
         </motion.div>
       </AnimatePresence>
 
       <AnimatePresence mode="wait">
-        <motion.div key={`text-${current}`} variants={textVariants} initial="hidden" animate="visible" exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col justify-center px-6 sm:px-10 md:px-16 z-10 pointer-events-none">
+        <motion.div key={`text-${current}`} variants={textVariants} initial="hidden" animate={loadedSlides[current] ? "visible" : "hidden"} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col justify-center px-6 sm:px-10 md:px-16 z-10 pointer-events-none">
           <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">{current + 1} / {HERO_IMAGES.length} · Welcona Collection</p>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight max-w-xl">{slide.title}</h1>
           <p className="mt-2 text-white/75 text-sm sm:text-base max-w-md">{slide.subtitle}</p>
