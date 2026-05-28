@@ -3,21 +3,15 @@
 import { cookies } from "next/headers";
 import bcrypt from "bcrypt";
 import prisma from "@/lib/db";
-import redis from "@/lib/redis";
-import { sendCentralizedOtp, verifyCentralizedOtp } from "@/lib/otp";
 import { signToken, COOKIE_NAME } from "@/lib/session";
 
-export async function adminLoginStartAction(
+export async function adminLoginAction(
   email: string,
   password?: string
 ): Promise<{ success?: boolean; error?: string }> {
   try {
     const cleanEmail = email.trim().toLowerCase();
     
-    if (!cleanEmail || !password) {
-      return { error: "Email and password are required." };
-    }
-
     if (!cleanEmail || !password) {
       return { error: "Email and password are required." };
     }
@@ -35,32 +29,7 @@ export async function adminLoginStartAction(
       return { error: "Invalid credentials." };
     }
 
-    // Credentials are valid, send OTP
-    return await sendCentralizedOtp(cleanEmail, "ADMIN_LOGIN");
-  } catch (error) {
-    console.error("Admin login start error:", error);
-    return { error: "An unexpected error occurred." };
-  }
-}
-
-export async function adminLoginVerifyAction(
-  email: string,
-  code: string
-): Promise<{ success?: boolean; error?: string }> {
-  try {
-    const cleanEmail = email.trim().toLowerCase();
-    const vr = await verifyCentralizedOtp(cleanEmail, code, "ADMIN_LOGIN");
-    if (!vr.success) return vr;
-
-    // OTP is valid. Set admin session.
-    const admin = await prisma.admin.findUnique({
-      where: { email: cleanEmail },
-    });
-
-    if (!admin) {
-      return { error: "Admin not found." };
-    }
-
+    // Credentials are valid, sign token directly (no OTP needed)
     const token = await signToken({
       sub: admin.id,
       email: admin.email,
@@ -78,7 +47,7 @@ export async function adminLoginVerifyAction(
 
     return { success: true };
   } catch (error) {
-    console.error("Admin login verify error:", error);
+    console.error("Admin login error:", error);
     return { error: "An unexpected error occurred." };
   }
 }

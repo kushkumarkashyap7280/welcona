@@ -37,11 +37,17 @@ const formSchema = z.object({
   categoryId: z.string().min(1, "Category is required"),
   quantity: z.coerce.number().min(0),
   retailPrice: z.coerce.number().min(0),
-  wholesalePrice: z.coerce.number().min(0),
-  wholesaleMinQuantity: z.coerce.number().min(1),
   discount: z.preprocess(
     (value) => (value === "" ? undefined : value),
     z.coerce.number().min(0).max(100).optional()
+  ),
+  wholesalePrice: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.coerce.number().min(0).optional()
+  ),
+  wholesaleMinQuantity: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.coerce.number().min(1).optional()
   ),
   description: z.string().optional(),
   warranty: z.string().optional(),
@@ -53,7 +59,6 @@ const formSchema = z.object({
 type ProductFormValues = z.infer<typeof formSchema>;
 type ProductImageField = {
   image: string;
-  detail: string;
   isPrimary: boolean;
 };
 
@@ -64,9 +69,9 @@ type ProductFormInitialData = {
   categoryId: string;
   quantity: number;
   retailPrice: number;
-  wholesalePrice: number;
-  wholesaleMinQuantity: number;
   discount: number | null;
+  wholesalePrice: number | null;
+  wholesaleMinQuantity: number;
   description: string | null;
   warranty: string | null;
   finish: string | null;
@@ -75,7 +80,6 @@ type ProductFormInitialData = {
   images: {
     id: string;
     image: string;
-    detail: string | null;
     isPrimary: boolean;
     index: number;
   }[];
@@ -89,7 +93,6 @@ interface ProductFormProps {
 function createEmptyImage(isPrimary = false): ProductImageField {
   return {
     image: "",
-    detail: "",
     isPrimary,
   };
 }
@@ -101,7 +104,6 @@ function getDefaultImages(initialData: ProductFormInitialData | null) {
 
   return initialData.images.map((image) => ({
     image: image.image,
-    detail: image.detail || "",
     isPrimary: image.isPrimary,
   }));
 }
@@ -121,9 +123,9 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
       categoryId: initialData?.categoryId || "",
       quantity: initialData?.quantity || 0,
       retailPrice: initialData?.retailPrice || 0,
-      wholesalePrice: initialData?.wholesalePrice || 0,
-      wholesaleMinQuantity: initialData?.wholesaleMinQuantity || 1,
       discount: initialData?.discount || undefined,
+      wholesalePrice: initialData?.wholesalePrice || undefined,
+      wholesaleMinQuantity: initialData?.wholesaleMinQuantity || 1,
       description: initialData?.description || "",
       warranty: initialData?.warranty || "",
       finish: initialData?.finish || "",
@@ -270,7 +272,6 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
       const normalizedImages = images
         .map((image, index) => ({
           image: image.image.trim(),
-          detail: image.detail.trim(),
           isPrimary: image.isPrimary,
           index,
         }))
@@ -512,38 +513,7 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="wholesalePrice">Wholesale Price (₹) *</Label>
-                  <Input
-                    id="wholesalePrice"
-                    type="number"
-                    step="0.01"
-                    {...form.register("wholesalePrice")}
-                    min="0"
-                    placeholder="0.00"
-                  />
-                  {form.formState.errors.wholesalePrice && (
-                    <p className="text-[0.8rem] font-medium text-destructive">
-                      {form.formState.errors.wholesalePrice.message}
-                    </p>
-                  )}
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="wholesaleMinQuantity">Min. Wholesale Qty *</Label>
-                  <Input
-                    id="wholesaleMinQuantity"
-                    type="number"
-                    {...form.register("wholesaleMinQuantity")}
-                    min="1"
-                    placeholder="1"
-                  />
-                  {form.formState.errors.wholesaleMinQuantity && (
-                    <p className="text-[0.8rem] font-medium text-destructive">
-                      {form.formState.errors.wholesaleMinQuantity.message}
-                    </p>
-                  )}
-                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="discount">Discount %</Label>
@@ -559,6 +529,39 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
                   {form.formState.errors.discount && (
                     <p className="text-[0.8rem] font-medium text-destructive">
                       {form.formState.errors.discount.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="wholesalePrice">Wholesale Price (₹)</Label>
+                  <Input
+                    id="wholesalePrice"
+                    type="number"
+                    step="0.01"
+                    {...form.register("wholesalePrice")}
+                    min="0"
+                    placeholder="Optional"
+                  />
+                  {form.formState.errors.wholesalePrice && (
+                    <p className="text-[0.8rem] font-medium text-destructive">
+                      {form.formState.errors.wholesalePrice.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="wholesaleMinQuantity">Wholesale Min Qty</Label>
+                  <Input
+                    id="wholesaleMinQuantity"
+                    type="number"
+                    {...form.register("wholesaleMinQuantity")}
+                    min="1"
+                    placeholder="1"
+                  />
+                  {form.formState.errors.wholesaleMinQuantity && (
+                    <p className="text-[0.8rem] font-medium text-destructive">
+                      {form.formState.errors.wholesaleMinQuantity.message}
                     </p>
                   )}
                 </div>
@@ -685,14 +688,7 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                    <Label>Image Description</Label>
-                    <Input
-                      value={image.detail}
-                      onChange={(e) => updateImage(index, "detail", e.target.value)}
-                      placeholder="Brief description of the image"
-                    />
-                  </div>
+
 
                   {image.image && (
                     <div className="mt-3">

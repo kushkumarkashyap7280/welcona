@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../lib/generated/prisma"
@@ -13,57 +10,17 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id            String             @id @default(uuid())
-  verified      Boolean            @default(false)
-  email         String             @unique
-  password      String?
-  mobile        String?            @unique
-  googleId      String?            @unique
-  avatarUrl     String?
-  fullName      String?
-  orders        Order[]
-  cart          Cart?
-  addresses     Address[]
-  blocked       Boolean            @default(false)
-  ratings       Rating[]
-  notifications UserNotification[]
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-}
-
+// ─── ADMIN MODEL (PASSWORD ONLY, NO ROLES) ──────────────────────────────────
 model Admin {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  role      AdminRole @default(ADMIN)
-  password  String
-  avatarUrl String?
+  id        String   @id @default(uuid())
+  email     String   @unique
   fullName  String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  password  String   // Hashed with bcrypt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-enum AdminRole {
-  SUPER_ADMIN
-  ADMIN
-}
-
-model Address {
-  id         String   @id @default(uuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  line1      String
-  line2      String?
-  city       String
-  state      String
-  postalCode String
-  country    String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  orders Order[]
-}
-
+// ─── PRODUCT CATEGORY ────────────────────────────────────────────────────────
 model Category {
   id          String    @id @default(uuid())
   name        String
@@ -74,25 +31,24 @@ model Category {
   products    Product[]
 }
 
+// ─── PRODUCT CATALOG (REMOVED RATING & WHOLESALE MIN QTY LOGIC) ──────────────
 model Product {
-  id                   String         @id @default(uuid())
-  quantity             Int
-  sku                  String         @unique
-  images               ProductImage[]
-  name                 String
-  warranty             String?
-  description          String?
-  finish               String? // e.g., "Chrome", "Stainless Steel"
-  material             String? // e.g., "Brass"
+  id           String         @id @default(uuid())
+  quantity     Int            // Inventory Stock
+  sku          String         @unique
+  name         String
+  images       ProductImage[]
+  warranty     String?
+  description  String?
+  finish       String?        // e.g., "Chrome", "Stainless Steel"
+  material     String?        // e.g., "Brass"
   retailPrice          Float
-  wholesalePrice       Float
-  wholesaleMinQuantity Int
-  discount             Float?
+  discount             Float?         // Discount percentage or raw difference
+  wholesalePrice       Float?
+  wholesaleMinQuantity Int            @default(1)
   categoryId           String
   category             Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  cartItems            CartItem[]
   orderItems           OrderItem[]
-  ratings              Rating[]
   tags                 String[]
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
@@ -103,82 +59,37 @@ model ProductImage {
   productId String
   index     Int      @default(0)
   isPrimary Boolean  @default(false)
-  detail    String?
+  image     String   // Image URL (Supabase bucket)
+  detail    String?  // Image description or caption
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  image     String
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-}
-
-model Rating {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product  @relation(fields: [productId], references: [id])
-  rating    Int
-  review    String?
-  imageUrl  String? // Optional image attachment URL
-  videoUrl  String? // Optional video attachment URL
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model Cart {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  cartItems CartItem[]
-}
-
-model CartItem {
-  id        String   @id @default(uuid())
-  cartId    String
-  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product  @relation(fields: [productId], references: [id])
-  quantity  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
+// ─── SIMPLIFIED ORDERS (STORES GUEST DETAILS INLINE) ────────────────────────
 model Order {
   id              String        @id @default(uuid())
-  userId          String
-  user            User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  customerName    String
+  customerEmail   String
+  customerPhone   String
+  shippingAddress String        // Aggregated shipping address string
   total           Float
   paymentStatus   PaymentStatus @default(PENDING)
   paymentMethod   PaymentMethod
-  // SNAPSHOT: Store the address as it was at the time of purchase
-  shippingAddress Json
-
-  // Optional: Keep the link for tracking, but use the Json for the receipt
-  addressId String?
-  address   Address? @relation(fields: [addressId], references: [id])
-
+  
   // Razorpay payment tracking
   razorpayOrderId   String?
   razorpayPaymentId String?
 
   status     OrderStatus @default(PENDING)
+  orderItems OrderItem[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
-  orderItems OrderItem[]
 }
 
 enum PaymentMethod {
-  CREDIT_CARD
-  DEBIT_CARD
-  PAYPAL
-  CHEQUE
-  BANK_TRANSFER
   CASH_ON_DELIVERY
-  UPI
-  NETBANKING
+  ONLINE
 }
 
 enum PaymentStatus {
@@ -189,11 +100,11 @@ enum PaymentStatus {
 }
 
 enum OrderStatus {
-  PENDING
-  CONFIRMED
+  PENDING    // Unapproved (especially COD)
+  CONFIRMED  // Confirmed/Accepted by Admin
   SHIPPED
   DELIVERED
-  CANCELLED
+  CANCELLED  // Rejected or Cancelled by Admin
 }
 
 model OrderItem {
@@ -203,26 +114,7 @@ model OrderItem {
   productId String
   product   Product  @relation(fields: [productId], references: [id])
   quantity  Int
-  price     Float
+  price     Float    // Snapshot of price at the time of purchase
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model UserNotification {
-  id          String           @id @default(uuid())
-  userId      String
-  messageType NotificationType
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title       String
-  message     String
-  read        Boolean          @default(false)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-}
-
-enum NotificationType {
-  ORDER_UPDATE
-  PROMOTION
-  SYSTEM_ALERT
-  OFFER
 }

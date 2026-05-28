@@ -1,3 +1,12 @@
+When using Razorpay in Test Mode (rzp_test_...), the popup appears correctly, but you must complete the payment simulation manually. Here is how:
+
+In the Razorpay modal, select UPI or Card.
+If you choose Card, use mock credentials:
+Card Number: 4111 1111 1111 1111 (Standard Razorpay test card)
+Expiry: Any future date (e.g. 12/30)
+CVV: Any 3 digits (e.g. 123)
+
+
 # Welcona Ecommerce Project Valuation (Client Quote README)
 
 This document is a client-ready valuation for the current Welcona ecommerce project, based on the implemented codebase and feature complexity.

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -10,20 +10,20 @@ import {
   LayoutDashboard,
   Menu,
   X,
-  User,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
   { href: "/products", label: "Products" },
+   { href: "/cart", label: "Cart" },
+   { href: "/about", label: "About" },
+ 
 ];
 
 export function SiteHeader() {
   const { isAuthenticated, user, loading, logout, refresh } = useAuth();
   const pathname = usePathname();
-  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Refresh session on route change to keep nav in sync
@@ -39,10 +39,9 @@ export function SiteHeader() {
   function handleLogout() {
     setMobileOpen(false);
     logout();
-    router.push("/login");
   }
 
-  // Hide header on dashboard pages (dashboard has its own shell)
+  // Hide header on dashboard or admin layouts (they have their own navigation)
   if (pathname.startsWith("/dashboard")) return null;
 
   return (
@@ -77,50 +76,22 @@ export function SiteHeader() {
         <div className="flex items-center gap-1.5">
           <ThemeToggle />
 
-          {!loading && (
-            <>
-              {isAuthenticated ? (
-                <div className="hidden sm:flex items-center gap-1.5">
-                  <Link href={user?.role === "admin" ? "/admin" : "/dashboard"}>
-                    <Button variant="ghost" size="sm" className="gap-1.5 text-xs">
-                      <LayoutDashboard className="size-3.5" />
-                      <span className="hidden md:inline">Dashboard</span>
-                    </Button>
-                  </Link>
-                  <div className="flex items-center gap-1.5 pl-1.5 border-l border-border">
-                    <div className="flex items-center justify-center size-7 rounded-full bg-primary/10 text-primary overflow-hidden">
-                      {user?.avatarUrl ? (
-                        <img
-                          src={user.avatarUrl}
-                          alt=""
-                          className="size-7 rounded-full object-cover"
-                        />
-                      ) : (
-                        <User className="size-3.5" />
-                      )}
-                    </div>
-                    <button
-                      onClick={handleLogout}
-                      className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
-                      title="Logout"
-                    >
-                      <LogOut className="size-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="hidden sm:flex items-center gap-1.5">
-                  <Link href="/login">
-                    <Button variant="ghost" size="sm" className="text-xs">
-                      Sign in
-                    </Button>
-                  </Link>
-                  <Link href="/signup">
-                    <Button size="sm" className="text-xs">Get Started</Button>
-                  </Link>
-                </div>
-              )}
-            </>
+          {!loading && isAuthenticated && user?.role === "admin" && (
+            <div className="hidden sm:flex items-center gap-1.5 pl-1.5 border-l border-border">
+              <Link href="/admin">
+                <Button variant="ghost" size="sm" className="gap-1.5 text-xs">
+                  <LayoutDashboard className="size-3.5" />
+                  <span>Admin Panel</span>
+                </Button>
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
+                title="Logout"
+              >
+                <LogOut className="size-3.5" />
+              </button>
+            </div>
           )}
 
           {/* Mobile menu toggle */}
@@ -154,40 +125,21 @@ export function SiteHeader() {
                 {link.label}
               </Link>
             ))}
-            <div className="h-px bg-border my-1.5" />
-            {!loading && (
+            {!loading && isAuthenticated && user?.role === "admin" && (
               <>
-                {isAuthenticated ? (
-                  <>
-                    <Link
-                      href={user?.role === "admin" ? "/admin" : "/dashboard"}
-                      className="px-3 py-2 text-sm font-medium rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    >
-                      Dashboard
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="px-3 py-2 text-sm font-medium rounded-lg text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    >
-                      Sign out
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      href="/login"
-                      className="px-3 py-2 text-sm font-medium rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    >
-                      Sign in
-                    </Link>
-                    <Link
-                      href="/signup"
-                      className="px-3 py-2 text-sm font-medium rounded-lg text-primary hover:bg-primary/10 transition-colors"
-                    >
-                      Get Started
-                    </Link>
-                  </>
-                )}
+                <div className="h-px bg-border my-1.5" />
+                <Link
+                  href="/admin"
+                  className="px-3 py-2 text-sm font-medium rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  Admin Panel
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="px-3 py-2 text-sm font-medium rounded-lg text-left text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  Sign out
+                </button>
               </>
             )}
           </div>

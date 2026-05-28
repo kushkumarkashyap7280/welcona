@@ -9,23 +9,9 @@
 * 🟢 You can import this file directly.
 */
 
-export const AdminRole = {
-  SUPER_ADMIN: 'SUPER_ADMIN',
-  ADMIN: 'ADMIN'
-} as const
-
-export type AdminRole = (typeof AdminRole)[keyof typeof AdminRole]
-
-
 export const PaymentMethod = {
-  CREDIT_CARD: 'CREDIT_CARD',
-  DEBIT_CARD: 'DEBIT_CARD',
-  PAYPAL: 'PAYPAL',
-  CHEQUE: 'CHEQUE',
-  BANK_TRANSFER: 'BANK_TRANSFER',
   CASH_ON_DELIVERY: 'CASH_ON_DELIVERY',
-  UPI: 'UPI',
-  NETBANKING: 'NETBANKING'
+  ONLINE: 'ONLINE'
 } as const
 
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod]
@@ -50,13 +36,3 @@ export const OrderStatus = {
 } as const
 
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus]
-
-
-export const NotificationType = {
-  ORDER_UPDATE: 'ORDER_UPDATE',
-  PROMOTION: 'PROMOTION',
-  SYSTEM_ALERT: 'SYSTEM_ALERT',
-  OFFER: 'OFFER'
-} as const
-
-export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]

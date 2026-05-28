@@ -7,14 +7,6 @@ const SECRET = new TextEncoder().encode(
 
 const COOKIE_NAME = "welcona_token";
 
-// Routes only accessible when NOT logged in
-const AUTH_ONLY_ROUTES = ["/login", "/signup"];
-
-// Routes that require a logged-in customer session
-const PROTECTED_CUSTOMER_ROUTES = [
-  "/dashboard",
-];
-
 // Routes that require admin role
 const ADMIN_ROUTES = ["/admin"];
 
@@ -36,40 +28,19 @@ export async function middleware(req: NextRequest) {
 
   const isAuthenticated = Boolean(session);
 
-  // Redirect logged-in users away from login/signup
-  if (AUTH_ONLY_ROUTES.some((r) => pathname === r)) {
-    if (isAuthenticated && session?.role !== "admin") {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    }
-    if(isAuthenticated && session?.role === "admin") {
-      return NextResponse.redirect(new URL("/admin", req.url));
-    }
-    return NextResponse.next();
-  }
-
-  // Protect customer routes
-  if (PROTECTED_CUSTOMER_ROUTES.some((r) => pathname.startsWith(r))) {
-    if (!isAuthenticated) {
-      const loginUrl = new URL("/login", req.url);
-      loginUrl.searchParams.set("from", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-    // Block admins from reaching the customer dashboard
-    if (session!.role !== "customer") {
-      return NextResponse.redirect(new URL("/admin", req.url));
-    }
-    // Attach user id as a header so server components can read it without re-verifying
-    const response = NextResponse.next();
-    response.headers.set("x-user-id", session!.sub);
-    response.headers.set("x-user-email", session!.email);
-    return response;
-  }
-
-  // Protect admin routes
+  // Protect admin routes (allow /admin/login to be publicly accessible)
   if (ADMIN_ROUTES.some((r) => pathname.startsWith(r))) {
-    if (!session || session.role !== "admin") {
-      return NextResponse.redirect(new URL("/login", req.url));
+    if (pathname === "/admin/login") {
+      if (isAuthenticated && session?.role === "admin") {
+        return NextResponse.redirect(new URL("/admin", req.url));
+      }
+      return NextResponse.next();
     }
+
+    if (!session || session.role !== "admin") {
+      return NextResponse.redirect(new URL("/admin/login", req.url));
+    }
+
     const response = NextResponse.next();
     response.headers.set("x-user-id", session.sub);
     return response;

@@ -82,7 +82,7 @@ export function CategoryClient({ data }: CategoryClientProps) {
             />
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto scrollbar-none">
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>

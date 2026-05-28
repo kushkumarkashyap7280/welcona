@@ -44,12 +44,6 @@ export async function POST(request: NextRequest) {
           orderBy: [{ isPrimary: "desc" }, { index: "asc" }, { createdAt: "asc" }],
           take: 1,
         },
-        ratings: {
-          select: {
-            id: true,
-            rating: true,
-          },
-        },
       },
       orderBy: {
         // Prioritize by category match + tag matches
@@ -59,12 +53,8 @@ export async function POST(request: NextRequest) {
 
     // Add review stats
     const productsWithStats = similarProducts.map((product) => {
-      const reviewCount = product.ratings.length;
-      const avgRating =
-        reviewCount === 0
-          ? 0
-          : product.ratings.reduce((sum, entry) => sum + entry.rating, 0) /
-            reviewCount;
+      const reviewCount = 0;
+      const avgRating = 0;
 
       // Calculate match score (for better sorting)
       const categoryMatch = product.categoryId === categoryId ? 10 : 0;

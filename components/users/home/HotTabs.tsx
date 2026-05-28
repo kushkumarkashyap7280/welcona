@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { normalizeImageSrc } from "@/lib/utils";
-import type { HotTabItem } from "@/lib/home-config";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,14 +37,12 @@ type CatalogItem = {
   description?: string;
   tags: string[];
   retailPrice: number;
-  wholesalePrice: number;
-  wholesaleMinQuantity: number;
   discount?: number;
+  wholesalePrice?: number | null;
+  wholesaleMinQuantity?: number;
   inStock: boolean;
   category: { id: string; name: string };
   images: CatalogProductImage[];
-  reviewCount: number;
-  avgRating: number;
 };
 
 type CatalogResponse = {
@@ -101,11 +98,11 @@ function ProductCard({ item, index }: { item: CatalogItem; index: number }) {
       custom={index}
       initial="hidden"
       animate="visible"
-      className="group relative bg-card rounded-2xl border border-border/70 overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-300 hover:-translate-y-1"
+      className="group relative bg-card rounded-2xl border border-border/70 overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-300 hover:-translate-y-1 flex flex-col"
     >
-      <Link href={`/products/${item.id}`}>
+      <Link href={`/products/${item.id}`} className="flex-1 flex flex-col">
         {/* Image */}
-        <div className="relative aspect-square bg-muted overflow-hidden">
+        <div className="relative w-full aspect-4/5 bg-muted overflow-hidden">
           {primaryImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -119,47 +116,42 @@ function ProductCard({ item, index }: { item: CatalogItem; index: number }) {
               <Package className="h-12 w-12 opacity-30" />
             </div>
           )}
+
           {/* Discount badge */}
           {item.discount && item.discount > 0 ? (
-            <div className="absolute top-2 left-2 bg-red-500 text-white text-[10px] sm:text-xs font-bold px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full">
+            <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-md shadow-sm z-10">
               -{Math.round(item.discount)}%
             </div>
           ) : null}
-          <div className="absolute bottom-0 inset-x-0 text-center py-0.5 sm:py-1 font-medium text-[10px] sm:text-xs bg-black/55 text-white backdrop-blur-sm">
-            {item.inStock ? (
-              <span className="inline-flex items-center gap-1">
-                <PackageCheck className="h-3 w-3" /> In Stock
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1">
-                <PackageX className="h-3 w-3" /> Out of Stock
-              </span>
-            )}
-          </div>
         </div>
 
         {/* Content */}
-        <div className="p-2.5 sm:p-3.5 space-y-1.5 sm:space-y-2">
-          <Badge variant="secondary" className="text-[10px] sm:text-xs px-1.5 py-0 sm:px-2.5 sm:py-0.5">
-            {item.category.name}
-          </Badge>
-          <p className="text-xs sm:text-sm font-semibold leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors">
+        <div className="p-4 space-y-2 flex-1 flex flex-col">
+          <div className="flex items-center justify-between gap-2">
+            <Badge variant="secondary" className="text-xs px-2 py-0.5">
+              {item.category.name}
+            </Badge>
+          </div>
+
+          <p className="text-sm sm:text-base font-semibold leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors">
             {item.name}
           </p>
-          {item.avgRating > 0 && (
-            <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
-              <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-amber-400 text-amber-400" />
-              <span className="font-medium text-foreground">{item.avgRating.toFixed(1)}</span>
-              <span>({item.reviewCount})</span>
+
+          <div className="mt-auto flex items-end justify-between gap-3">
+            <div>
+              <div className="text-lg font-bold text-foreground">
+                {discountedPrice ?? priceFormatted}
+              </div>
+              {discountedPrice && (
+                <div className="text-xs text-muted-foreground line-through">{priceFormatted}</div>
+              )}
             </div>
-          )}
-          <div className="flex items-baseline gap-1 sm:gap-1.5">
-            <span className="text-sm sm:text-base font-bold text-foreground">
-              {discountedPrice ?? priceFormatted}
-            </span>
-            {discountedPrice && (
-              <span className="text-xs text-muted-foreground line-through">{priceFormatted}</span>
-            )}
+
+            <div className="shrink-0">
+              <Button size="sm" className="px-3 py-1">
+                View
+              </Button>
+            </div>
           </div>
         </div>
       </Link>
@@ -185,8 +177,10 @@ function SkeletonCard() {
 
 // ─── HotTabs Component ────────────────────────────────────────────────────────
 
+
+
 interface Props {
-  tabs: HotTabItem[];
+  tabs: any[];
 }
 
 export function HotTabs({ tabs }: Props) {
@@ -281,7 +275,7 @@ export function HotTabs({ tabs }: Props) {
 
         {/* Product grid */}
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {Array.from({ length: 12 }).map((_, i) => (
               <SkeletonCard key={i} />
             ))}
@@ -300,7 +294,7 @@ export function HotTabs({ tabs }: Props) {
             <p className="text-sm">No products found for this filter.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {data.items.map((item, i) => (
               <ProductCard key={item.id} item={item} index={i} />
             ))}

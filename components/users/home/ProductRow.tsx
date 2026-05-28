@@ -31,8 +31,6 @@ type CatalogItem = {
   description: string | null;
   tags: string[];
   retailPrice: number;
-  wholesalePrice: number;
-  wholesaleMinQuantity: number;
   discount: number | null;
   inStock: boolean;
   category: { id: string; name: string };
@@ -43,8 +41,6 @@ type CatalogItem = {
     isPrimary: boolean;
     index: number;
   }[];
-  reviewCount: number;
-  avgRating: number;
 };
 
 type CatalogResponse = {
@@ -159,20 +155,7 @@ function ProductCard({ product, index }: { product: CatalogItem; index: number }
             {product.name}
           </h3>
 
-          {/* Rating */}
-          <div className="flex items-center gap-1.5">
-            <div className="flex items-center gap-0.5 text-amber-500">
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <span className="text-xs font-semibold text-foreground">
-                {product.reviewCount ? product.avgRating.toFixed(1) : "New"}
-              </span>
-            </div>
-            {product.reviewCount > 0 && (
-              <span className="text-[11px] text-muted-foreground">
-                ({product.reviewCount})
-              </span>
-            )}
-          </div>
+
 
           {/* Tags */}
           {product.tags.length > 0 && (

@@ -45,15 +45,13 @@ export function SiteFooter() {
   const shopLinks = [
     { href: "/", label: "Home" },
     { href: "/products", label: "All Products" },
-    { href: "/dashboard/cart", label: "Cart" },
-    { href: "/dashboard/orders", label: "My Orders" },
+    { href: "/cart", label: "Cart" },
   ] as const;
 
   const supportLinks = [
     { href: "/about", label: "About Us" },
     { href: "/privacy", label: "Privacy Policy" },
     { href: "/terms", label: "Terms & Conditions" },
-    { href: "/forgot-password", label: "Forgot Password" },
   ] as const;
 
   return (

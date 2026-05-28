@@ -11,28 +11,11 @@ const prisma = new PrismaClient({
   adapter,
 });
 
-const userData: Prisma.UserCreateInput[] = [
-  {
-    email: "user1@gmail.com",
-    mobile: "1234567890",
-    verified: true,
-    fullName: "Riya Malhotra",
-  },
-  {
-    email: "user2@gmail.com",
-    mobile: "0987654321",
-    verified: true,
-    fullName: "Karan Bhatia",
-  },
-];
-
 const adminData: Prisma.AdminCreateInput[] = [
   {
-    email: "admin1@gmail.com",
-    password: "",
-    avatarUrl: null,
+    email: "kushkumar.officialsoftwaredev@gmail.com",
+    password: "1234", // Will be replaced by hashed password
     fullName: "Welcona Admin",
-    role: "SUPER_ADMIN",
   },
 ];
 
@@ -98,9 +81,9 @@ type SeedProduct = {
   categoryName: string;
   quantity: number;
   retailPrice: number;
-  wholesalePrice: number;
-  wholesaleMinQuantity: number;
   discount?: number;
+  wholesalePrice?: number;
+  wholesaleMinQuantity?: number;
   description: string;
   warranty: string;
   finish: string;
@@ -128,9 +111,9 @@ const productData: SeedProduct[] = [
     categoryName: "Basin Mixers",
     quantity: 18,
     retailPrice: 18990,
-    wholesalePrice: 15190,
-    wholesaleMinQuantity: 6,
     discount: 10,
+    wholesalePrice: 13990,
+    wholesaleMinQuantity: 5,
     description: "A soft-edged brass basin mixer with a tall body profile and smooth cartridge action for premium vanity counters.",
     warranty: "7 years",
     finish: "Brushed Gold",
@@ -144,9 +127,9 @@ const productData: SeedProduct[] = [
     categoryName: "Basin Mixers",
     quantity: 14,
     retailPrice: 21490,
-    wholesalePrice: 17250,
-    wholesaleMinQuantity: 6,
     discount: 12,
+    wholesalePrice: 15490,
+    wholesaleMinQuantity: 3,
     description: "Tall deck-mounted mixer designed for vessel basins with a slim silhouette and crisp water projection.",
     warranty: "7 years",
     finish: "Matte Black",
@@ -160,8 +143,8 @@ const productData: SeedProduct[] = [
     categoryName: "Basin Mixers",
     quantity: 20,
     retailPrice: 17650,
-    wholesalePrice: 14120,
-    wholesaleMinQuantity: 8,
+    wholesalePrice: 12500,
+    wholesaleMinQuantity: 10,
     description: "Wall-mounted basin mixer for clutter-free countertops and a minimal architectural look.",
     warranty: "5 years",
     finish: "Chrome",
@@ -175,8 +158,6 @@ const productData: SeedProduct[] = [
     categoryName: "Basin Mixers",
     quantity: 11,
     retailPrice: 24990,
-    wholesalePrice: 20500,
-    wholesaleMinQuantity: 4,
     discount: 8,
     description: "Touch-free basin mixer suited for hospitality and commercial washrooms where hygiene is a priority.",
     warranty: "5 years",
@@ -191,8 +172,6 @@ const productData: SeedProduct[] = [
     categoryName: "Shower Systems",
     quantity: 16,
     retailPrice: 32990,
-    wholesalePrice: 27100,
-    wholesaleMinQuantity: 4,
     discount: 15,
     description: "Rain shower system with overhead shower, hand shower, diverter, and exposed trim for feature bathrooms.",
     warranty: "7 years",
@@ -207,8 +186,6 @@ const productData: SeedProduct[] = [
     categoryName: "Shower Systems",
     quantity: 9,
     retailPrice: 38990,
-    wholesalePrice: 32120,
-    wholesaleMinQuantity: 3,
     discount: 10,
     description: "Thermostatic shower column with wide rain head and precise temperature control for premium projects.",
     warranty: "7 years",
@@ -223,8 +200,6 @@ const productData: SeedProduct[] = [
     categoryName: "Shower Systems",
     quantity: 12,
     retailPrice: 27990,
-    wholesalePrice: 22990,
-    wholesaleMinQuantity: 5,
     description: "Ceiling-mounted shower arm set created for clean vertical lines and open shower enclosures.",
     warranty: "5 years",
     finish: "Matte Black",
@@ -238,8 +213,6 @@ const productData: SeedProduct[] = [
     categoryName: "Shower Systems",
     quantity: 15,
     retailPrice: 23650,
-    wholesalePrice: 19400,
-    wholesaleMinQuantity: 5,
     discount: 6,
     description: "Round overhead shower kit with exposed trim and balanced spray coverage for daily comfort.",
     warranty: "5 years",
@@ -254,8 +227,6 @@ const productData: SeedProduct[] = [
     categoryName: "Hand Showers & Health Faucets",
     quantity: 28,
     retailPrice: 6490,
-    wholesalePrice: 4950,
-    wholesaleMinQuantity: 12,
     description: "Compact hand shower kit with hose, wall hook, and smooth spray control for flexible bathing zones.",
     warranty: "3 years",
     finish: "Chrome",
@@ -269,8 +240,6 @@ const productData: SeedProduct[] = [
     categoryName: "Hand Showers & Health Faucets",
     quantity: 34,
     retailPrice: 4290,
-    wholesalePrice: 3180,
-    wholesaleMinQuantity: 20,
     discount: 7,
     description: "Health faucet set with braided hose and compact trigger body designed for daily use and easy servicing.",
     warranty: "3 years",
@@ -285,8 +254,6 @@ const productData: SeedProduct[] = [
     categoryName: "Hand Showers & Health Faucets",
     quantity: 17,
     retailPrice: 7990,
-    wholesalePrice: 6180,
-    wholesaleMinQuantity: 10,
     discount: 9,
     description: "Multi-spray handset with ergonomic form and balanced weight for premium shower upgrades.",
     warranty: "5 years",
@@ -301,8 +268,6 @@ const productData: SeedProduct[] = [
     categoryName: "Hand Showers & Health Faucets",
     quantity: 22,
     retailPrice: 5890,
-    wholesalePrice: 4390,
-    wholesaleMinQuantity: 15,
     description: "Two-piece spray duo with compact wall outlet and smooth hose management.",
     warranty: "3 years",
     finish: "Matte Black",
@@ -316,8 +281,6 @@ const productData: SeedProduct[] = [
     categoryName: "Bathroom Accessories",
     quantity: 40,
     retailPrice: 2690,
-    wholesalePrice: 1810,
-    wholesaleMinQuantity: 24,
     description: "Rounded towel ring with concealed fixings and a compact profile suited for contemporary bathrooms.",
     warranty: "2 years",
     finish: "Chrome",
@@ -331,8 +294,6 @@ const productData: SeedProduct[] = [
     categoryName: "Bathroom Accessories",
     quantity: 25,
     retailPrice: 4590,
-    wholesalePrice: 3360,
-    wholesaleMinQuantity: 16,
     discount: 5,
     description: "Long-form towel rail with crisp edges and concealed mounting hardware.",
     warranty: "2 years",
@@ -347,8 +308,6 @@ const productData: SeedProduct[] = [
     categoryName: "Bathroom Accessories",
     quantity: 50,
     retailPrice: 1490,
-    wholesalePrice: 980,
-    wholesaleMinQuantity: 30,
     description: "Minimal single robe hook with a compact footprint and smooth edge detailing.",
     warranty: "2 years",
     finish: "Matte Black",
@@ -362,8 +321,6 @@ const productData: SeedProduct[] = [
     categoryName: "Bathroom Accessories",
     quantity: 19,
     retailPrice: 3890,
-    wholesalePrice: 2860,
-    wholesaleMinQuantity: 14,
     description: "Soap holder and shelf combo for shower enclosures where compact storage matters.",
     warranty: "2 years",
     finish: "Rose Gold",
@@ -377,8 +334,6 @@ const productData: SeedProduct[] = [
     categoryName: "Concealed Systems & Drains",
     quantity: 21,
     retailPrice: 9190,
-    wholesalePrice: 7120,
-    wholesaleMinQuantity: 10,
     description: "Flush plate system with a clean rectangular interface designed for concealed cistern setups.",
     warranty: "5 years",
     finish: "Champagne",
@@ -392,8 +347,6 @@ const productData: SeedProduct[] = [
     categoryName: "Concealed Systems & Drains",
     quantity: 13,
     retailPrice: 16990,
-    wholesalePrice: 13620,
-    wholesaleMinQuantity: 6,
     discount: 11,
     description: "Concealed cistern kit for wall-hung setups with reliable internals and quiet refilling.",
     warranty: "7 years",
@@ -408,8 +361,6 @@ const productData: SeedProduct[] = [
     categoryName: "Concealed Systems & Drains",
     quantity: 46,
     retailPrice: 2490,
-    wholesalePrice: 1750,
-    wholesaleMinQuantity: 25,
     description: "Linear-style floor drain with removable grate and easy-clean trap design.",
     warranty: "3 years",
     finish: "Stainless Steel",
@@ -423,8 +374,6 @@ const productData: SeedProduct[] = [
     categoryName: "Concealed Systems & Drains",
     quantity: 27,
     retailPrice: 3390,
-    wholesalePrice: 2480,
-    wholesaleMinQuantity: 18,
     description: "Decorative bottle trap for open vanity installations where under-counter detailing stays visible.",
     warranty: "3 years",
     finish: "Chrome",
@@ -435,33 +384,13 @@ const productData: SeedProduct[] = [
 ];
 
 export async function main() {
-  const hashedPassword = await bcrypt.hash("password", 12);
-
-  for (const user of userData) {
-    await prisma.user.upsert({
-      where: { email: user.email },
-      update: {
-        password: hashedPassword,
-        mobile: user.mobile,
-        verified: user.verified,
-        avatarUrl: user.avatarUrl ?? null,
-        fullName: user.fullName ?? null,
-      },
-      create: {
-        ...user,
-        password: hashedPassword,
-      },
-    });
-  }
-
   for (const admin of adminData) {
+    const hashedPassword = await bcrypt.hash(admin.password, 12);
     await prisma.admin.upsert({
       where: { email: admin.email },
       update: {
         password: hashedPassword,
-        avatarUrl: admin.avatarUrl ?? null,
         fullName: admin.fullName ?? null,
-        role: admin.role,
       },
       create: {
         ...admin,
@@ -513,9 +442,9 @@ export async function main() {
         name: product.name,
         quantity: product.quantity,
         retailPrice: product.retailPrice,
-        wholesalePrice: product.wholesalePrice,
-        wholesaleMinQuantity: product.wholesaleMinQuantity,
         discount: product.discount ?? null,
+        wholesalePrice: product.wholesalePrice ?? null,
+        wholesaleMinQuantity: product.wholesaleMinQuantity ?? 1,
         description: product.description,
         warranty: product.warranty,
         finish: product.finish,
@@ -532,9 +461,9 @@ export async function main() {
         name: product.name,
         quantity: product.quantity,
         retailPrice: product.retailPrice,
-        wholesalePrice: product.wholesalePrice,
-        wholesaleMinQuantity: product.wholesaleMinQuantity,
         discount: product.discount ?? null,
+        wholesalePrice: product.wholesalePrice ?? null,
+        wholesaleMinQuantity: product.wholesaleMinQuantity ?? 1,
         description: product.description,
         warranty: product.warranty,
         finish: product.finish,
@@ -561,5 +490,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-
-

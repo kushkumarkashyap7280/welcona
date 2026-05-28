@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
 import {
-  AlertTriangle,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -18,19 +17,14 @@ import {
   ShieldCheck,
   ShoppingCart,
   Sparkles,
-  Star,
   Truck,
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { addToCartAction } from "@/lib/actions/user";
-import { useAuth } from "@/components/providers/AuthProvider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProductImage } from "@/components/ui/product-image";
-import { ReviewsSection } from "./ReviewsSection";
-import { ProductShareButton } from "./ProductShareButton";
 import { cn, normalizeImageSrc } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -52,16 +46,13 @@ type ProductDetails = {
   finish: string | null;
   material: string | null;
   retailPrice: number;
-  wholesalePrice: number;
-  wholesaleMinQuantity: number;
   discount: number | null;
+  wholesalePrice: number | null;
+  wholesaleMinQuantity: number;
   quantity: number;
   tags: string[];
   category: { id: string; name: string };
   images: ProductImg[];
-  ratings: { user: { id: string } }[];
-  reviewCount: number;
-  avgRating: number;
 };
 
 type RelatedProduct = {
@@ -70,8 +61,6 @@ type RelatedProduct = {
   retailPrice: number;
   discount: number | null;
   tags: string[];
-  reviewCount: number;
-  avgRating: number;
   images: { id: string; image: string; isPrimary: boolean; index: number }[];
 };
 
@@ -90,23 +79,6 @@ function formatPrice(price: number) {
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(price);
-}
-
-function StarRow({
-  rating,
-  size = "md",
-}: {
-  rating: number;
-  size?: "sm" | "md";
-}) {
-  const cls = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
-  return (
-    <div className="flex items-center gap-0.5 text-amber-500">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Star key={i} className={cn(cls, i < Math.round(rating) && "fill-current")} />
-      ))}
-    </div>
-  );
 }
 
 // ─── Gallery ──────────────────────────────────────────────────────────────────
@@ -137,7 +109,6 @@ function ProductGallery({ images, name }: { images: ProductImg[]; name: string }
     [count]
   );
 
-  // Auto-advance every 4 s
   useEffect(() => {
     if (paused || count <= 1) return;
     intervalRef.current = setInterval(() => go(current + 1, 1), 4000);
@@ -280,7 +251,6 @@ function StockBadge({ quantity }: { quantity: number }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function ProductDetailsClient({ productId }: { productId: string }) {
-  const { isAuthenticated, user } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState<DetailTab>("overview");
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -288,7 +258,7 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
   const query = useQuery({
     queryKey: ["product-details", productId],
     queryFn: async () => {
-      const res = await fetch(`/api/products/${productId}`, { credentials: "include" });
+      const res = await fetch(`/api/products/${productId}`);
       if (!res.ok) throw new Error("Failed to load product");
       return (await res.json()) as ProductDetailsResponse;
     },
@@ -300,7 +270,6 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
   const stockCount = product?.quantity ?? 0;
   const outOfStock = stockCount === 0;
 
-  // Cap quantity whenever stock changes
   useEffect(() => {
     if (stockCount > 0 && quantity > stockCount) setQuantity(stockCount);
   }, [stockCount, quantity]);
@@ -327,25 +296,51 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
 
   const atMaxStock = stockCount > 0 && quantity >= stockCount;
 
-  // Check if logged-in user has already reviewed (from product-level ratings list)
-  const userHasReviewed = useMemo(() => {
-    if (!isAuthenticated || !user || !product) return false;
-    return product.ratings.some((r) => r.user.id === user.id);
-  }, [isAuthenticated, user, product]);
-
-  const canAddToCart = isAuthenticated && user?.role === "customer" && !outOfStock;
-
   const handleAddToCart = async () => {
     if (!product) return;
     setIsAddingToCart(true);
-    const result = await addToCartAction(product.id, quantity);
-    setIsAddingToCart(false);
-    if (result.error) {
-      toast.error(result.error);
-      return;
+
+    try {
+      // Get existing localStorage cart
+      const currentCartRaw = localStorage.getItem("welcona_cart");
+      let currentCart = currentCartRaw ? JSON.parse(currentCartRaw) : [];
+
+      if (!Array.isArray(currentCart)) {
+        currentCart = [];
+      }
+
+      // Check if product is already inside the cart
+      const existingItem = currentCart.find((item: any) => item.productId === product.id);
+
+      if (existingItem) {
+        existingItem.quantity = Math.min(stockCount, existingItem.quantity + quantity);
+      } else {
+        const primaryImage = product.images.find(img => img.isPrimary) ?? product.images[0];
+        currentCart.push({
+          productId: product.id,
+          name: product.name,
+          sku: product.sku,
+          retailPrice: product.retailPrice,
+          discount: product.discount,
+          wholesalePrice: product.wholesalePrice,
+          wholesaleMinQuantity: product.wholesaleMinQuantity,
+          image: primaryImage ? primaryImage.image : "",
+          quantity: quantity,
+        });
+      }
+
+      // Write updated cart back to local storage
+      localStorage.setItem("welcona_cart", JSON.stringify(currentCart));
+      
+      toast.success("Added to cart");
+      
+      // Dispatch cart update event
+      window.dispatchEvent(new Event("cart-updated"));
+    } catch (err) {
+      toast.error("Failed to add item to cart.");
+    } finally {
+      setIsAddingToCart(false);
     }
-    toast.success("Added to cart");
-    window.dispatchEvent(new Event("cart-updated"));
   };
 
   // ── Loading ──
@@ -405,33 +400,38 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
               <p className="text-sm leading-7 text-muted-foreground">{product.description}</p>
             )}
 
-            {/* Rating row */}
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <StarRow rating={product.avgRating} />
-              <span className="font-medium">
-                {product.reviewCount ? product.avgRating.toFixed(1) : "New"}
-              </span>
-              <span className="text-muted-foreground">
-                {product.reviewCount ? `${product.reviewCount} reviews` : "No reviews yet"}
-              </span>
-            </div>
-
             {/* Price block */}
-            <div className="rounded-[1.5rem] border border-border/70 bg-background/80 p-4">
-              <div className="flex flex-wrap items-end gap-3">
-                <span className="text-3xl font-semibold tracking-tight">
-                  {formatPrice(discountedPrice)}
-                </span>
-                {product.discount ? (
-                  <span className="pb-0.5 text-sm text-muted-foreground line-through">
-                    {formatPrice(product.retailPrice)}
+            <div className="rounded-[1.5rem] border border-border/70 bg-background/80 p-5 shadow-sm space-y-3">
+              <div>
+                <span className="text-xs text-muted-foreground block mb-0.5 font-medium">Retail Price</span>
+                <div className="flex flex-wrap items-end gap-3">
+                  <span className="text-3xl font-semibold tracking-tight">
+                    {formatPrice(discountedPrice)}
                   </span>
-                ) : null}
+                  {product.discount ? (
+                    <span className="pb-0.5 text-sm text-muted-foreground line-through">
+                      {formatPrice(product.retailPrice)}
+                    </span>
+                  ) : null}
+                </div>
               </div>
-              <p className="mt-1.5 text-xs text-emerald-700">
-                Wholesale from {formatPrice(product.wholesalePrice)} · min{" "}
-                {product.wholesaleMinQuantity} units
-              </p>
+              
+              {product.wholesalePrice ? (
+                <div className="pt-3 border-t border-border/60 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold block mb-0.5">Wholesale Price</span>
+                    <span className="text-2xl font-bold text-emerald-700 dark:text-emerald-500">
+                      {formatPrice(product.wholesalePrice)}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs text-muted-foreground block mb-0.5 font-medium">Wholesale Min Qty</span>
+                    <span className="text-base font-semibold text-foreground">
+                      {product.wholesaleMinQuantity} units
+                    </span>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {/* Quantity + CTA */}
@@ -480,47 +480,20 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
                   )}
                 </div>
 
-                {/* Add to Cart — login-gated */}
-                {canAddToCart ? (
-                  <Button
-                    size="lg"
-                    className="w-full rounded-full"
-                    onClick={handleAddToCart}
-                    disabled={isAddingToCart}
-                  >
-                    {isAddingToCart ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <ShoppingCart className="mr-2 h-4 w-4" />
-                    )}
-                    Add to Cart
-                  </Button>
-                ) : !isAuthenticated ? (
-                  <div className="space-y-2">
-                    <Button size="lg" className="w-full rounded-full" disabled>
-                      <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
-                    </Button>
-                    <p className="text-center text-xs text-muted-foreground">
-                      <Link href="/login" className="text-primary underline underline-offset-2">
-                        Log in
-                      </Link>{" "}
-                      or{" "}
-                      <Link href="/register" className="text-primary underline underline-offset-2">
-                        create an account
-                      </Link>{" "}
-                      to add items to your cart.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Button size="lg" className="w-full rounded-full" disabled>
-                      <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
-                    </Button>
-                    <p className="text-center text-xs text-muted-foreground">
-                      A customer account is required to place orders.
-                    </p>
-                  </div>
-                )}
+                {/* Add to Cart button */}
+                <Button
+                  size="lg"
+                  className="w-full rounded-full"
+                  onClick={handleAddToCart}
+                  disabled={isAddingToCart}
+                >
+                  {isAddingToCart ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                  )}
+                  Add to Cart
+                </Button>
               </div>
             )}
 
@@ -534,13 +507,6 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
                 ))}
               </div>
             )}
-
-            {/* <ProductShareButton
-              product={{
-                id: product.id,
-                name: product.name,
-              }}
-            /> */}
           </div>
 
           {/* Trust cards */}
@@ -616,14 +582,17 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
                 {[
                   { label: "Category", value: product.category.name },
                   { label: "Retail price", value: formatPrice(product.retailPrice) },
-                  { label: "Wholesale price", value: formatPrice(product.wholesalePrice) },
                   {
                     label: "Discount",
                     value: product.discount ? `${product.discount}%` : "No active offer",
                   },
+                  ...(product.wholesalePrice ? [
+                    { label: "Wholesale Price", value: formatPrice(product.wholesalePrice) },
+                    { label: "Wholesale Min Qty", value: `${product.wholesaleMinQuantity} units` }
+                  ] : [])
                 ].map((row, i, arr) => (
                   <div
-                    key={row.label}
+                     key={row.label}
                     className={cn(
                       "flex items-center justify-between gap-4 py-2.5",
                       i < arr.length - 1 && "border-b border-border/60"
@@ -642,13 +611,12 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+              className="grid gap-4 sm:grid-cols-3"
             >
               {[
                 { label: "Finish", value: product.finish },
                 { label: "Material", value: product.material },
                 { label: "Warranty", value: product.warranty },
-                { label: "Wholesale MOQ", value: `${product.wholesaleMinQuantity} units` },
               ].map((spec) => (
                 <div
                   key={spec.label}
@@ -665,19 +633,6 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
-
-      {/* ── Reviews section (lazy-loaded on scroll) ── */}
-      <div className="rounded-[2rem] border border-border/70 bg-card/90 p-6 shadow-sm md:p-8">
-        <ReviewsSection
-          productId={productId}
-          productName={product.name}
-          avgRating={product.avgRating}
-          reviewCount={product.reviewCount}
-          isAuthenticated={isAuthenticated}
-          hasUserReviewed={userHasReviewed}
-          currentUserId={user?.id}
-        />
       </div>
 
       {/* ── Related Products ── */}
@@ -718,12 +673,6 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
                     <p className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">
                       {rel.name}
                     </p>
-                    {rel.reviewCount > 0 && (
-                      <div className="flex items-center gap-1">
-                        <StarRow rating={rel.avgRating} size="sm" />
-                        <span className="text-xs text-muted-foreground">({rel.reviewCount})</span>
-                      </div>
-                    )}
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold">{formatPrice(relPrice)}</span>
                       {rel.discount ? (

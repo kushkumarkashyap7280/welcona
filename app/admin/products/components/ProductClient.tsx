@@ -35,9 +35,9 @@ type ProductWithCategory = {
   categoryId: string;
   quantity: number;
   retailPrice: number;
-  wholesalePrice: number;
-  wholesaleMinQuantity: number;
   discount: number | null;
+  wholesalePrice: number | null;
+  wholesaleMinQuantity: number;
   description: string | null;
   warranty: string | null;
   finish: string | null;
@@ -51,8 +51,6 @@ type ProductWithCategory = {
     isPrimary: boolean;
     index: number;
   }[];
-  reviewCount: number;
-  avgRating: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -260,7 +258,7 @@ export function ProductClient({ categories }: ProductClientProps) {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto scrollbar-none">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -276,7 +274,6 @@ export function ProductClient({ categories }: ProductClientProps) {
                     <TableHead>Category</TableHead>
                     <TableHead className="text-right">Price</TableHead>
                     <TableHead className="text-right">Stock</TableHead>
-                    <TableHead className="text-center">Reviews</TableHead>
                     <TableHead className="text-right py-4">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -344,20 +341,7 @@ export function ProductClient({ categories }: ProductClientProps) {
                               {product.quantity}
                             </span>
                           </TableCell>
-                          <TableCell className="text-center">
-                            <div className="text-sm">
-                              {product.reviewCount > 0 ? (
-                                <>
-                                  <div className="font-medium">{product.avgRating.toFixed(1)}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    ({product.reviewCount} review{product.reviewCount !== 1 ? 's' : ''})
-                                  </div>
-                                </>
-                              ) : (
-                                <span className="text-muted-foreground text-xs">No reviews</span>
-                              )}
-                            </div>
-                          </TableCell>
+
                           <TableCell className="text-right space-x-2">
                             <Button
                               variant="ghost"

@@ -13,6 +13,7 @@ import {
   Clock,
   MoreHorizontal,
   Eye,
+  ShoppingBag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -21,6 +22,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -65,11 +67,8 @@ type Order = {
   razorpayOrderId: string | null;
   razorpayPaymentId: string | null;
   createdAt: string;
-  user: {
-    id: string;
-    fullName: string | null;
-    email: string;
-  };
+  customerName: string;
+  customerEmail: string;
   orderItems: OrderItem[];
 };
 
@@ -240,70 +239,82 @@ export function OrdersClient() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Orders</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage customer orders and update statuses
+          <h2 className="text-3xl font-bold tracking-tight">Orders</h2>
+          <p className="text-muted-foreground mt-2">
+            Manage customer guest orders and update order statuses.
           </p>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative w-full max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search by order ID or customer..."
-            value={searchInput}
-            onChange={(e) => {
-              setSearchInput(e.target.value);
-              setPage(1);
-            }}
-            className="pl-9"
-          />
-        </div>
-        <Select
-          value={status}
-          onValueChange={(v) => {
-            setStatus(v);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={paymentStatus}
-          onValueChange={(v) => {
-            setPaymentStatus(v);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Payment" />
-          </SelectTrigger>
-          <SelectContent>
-            {PAYMENT_STATUS_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Orders Table */}
-      <div className="rounded-lg border">
-        <Table>
+      {/* Main card */}
+      <Card className="mt-8">
+        <CardHeader className="py-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-xl font-bold">All Orders</CardTitle>
+            </div>
+            
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative w-full sm:w-80">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search email, name or order ID..."
+                  value={searchInput}
+                  onChange={(e) => {
+                    setSearchInput(e.target.value);
+                    setPage(1);
+                  }}
+                  className="pl-9 w-full"
+                />
+              </div>
+              
+              <Select
+                value={status}
+                onValueChange={(v) => {
+                  setStatus(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select
+                value={paymentStatus}
+                onValueChange={(v) => {
+                  setPaymentStatus(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="Payment" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="p-0 overflow-x-auto scrollbar-none">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-25">Order</TableHead>
@@ -351,10 +362,10 @@ export function OrdersClient() {
                     <TableCell>
                       <div>
                         <p className="font-medium text-sm">
-                          {order.user.fullName || "—"}
+                          {order.customerName || "—"}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {order.user.email}
+                          {order.customerEmail}
                         </p>
                       </div>
                     </TableCell>
@@ -469,7 +480,8 @@ export function OrdersClient() {
             )}
           </TableBody>
         </Table>
-      </div>
+      </CardContent>
+    </Card>
 
       {/* Pagination */}
       <div className="flex items-center justify-between">

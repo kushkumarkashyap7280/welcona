@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-
 import prisma from "@/lib/db";
 
 type SortMode = "newest" | "priceAsc" | "priceDesc" | "discount";
@@ -35,6 +34,11 @@ export async function GET(request: NextRequest) {
           },
         }
       : {}),
+    ...(searchParams.get("wholesale") === "true"
+      ? {
+          wholesalePrice: { not: null },
+        }
+      : {}),
   };
 
   const orderBy =
@@ -46,8 +50,7 @@ export async function GET(request: NextRequest) {
           ? [{ discount: "desc" as const }, { createdAt: "desc" as const }]
           : [{ createdAt: "desc" as const }];
 
-  // Fetch tags from all products in the selected category (ignoring current tag/price filter)
-  // so tag chips remain visible and stable when a tag is already active
+  // Fetch tags from all products in selected category (ignoring active tag/price filter)
   const tagSourceWhere = {
     ...(categoryId && categoryId !== "all" ? { categoryId } : {}),
   };
@@ -66,16 +69,15 @@ export async function GET(request: NextRequest) {
           description: true,
           tags: true,
           retailPrice: true,
+          discount: true,
           wholesalePrice: true,
           wholesaleMinQuantity: true,
-          discount: true,
           quantity: true,
           category: { select: { id: true, name: true } },
           images: {
             select: { image: true, isPrimary: true, index: true },
             orderBy: [{ isPrimary: "desc" }, { index: "asc" }, { createdAt: "asc" }],
           },
-          ratings: { select: { id: true, rating: true } },
       },
     }),
     prisma.category.findMany({
@@ -91,12 +93,6 @@ export async function GET(request: NextRequest) {
   const allTags = [...new Set(tagSourceProducts.flatMap((p) => p.tags))].sort();
 
   const data = items.map((item) => {
-    const reviewCount = item.ratings.length;
-    const avgRating =
-      reviewCount === 0
-        ? 0
-        : item.ratings.reduce((sum, entry) => sum + entry.rating, 0) / reviewCount;
-
     return {
       id: item.id,
       name: item.name,
@@ -104,14 +100,12 @@ export async function GET(request: NextRequest) {
       description: item.description,
       tags: item.tags,
       retailPrice: item.retailPrice,
+      discount: item.discount,
       wholesalePrice: item.wholesalePrice,
       wholesaleMinQuantity: item.wholesaleMinQuantity,
-      discount: item.discount,
       inStock: item.quantity > 0,
       category: item.category,
       images: item.images,
-      reviewCount,
-      avgRating,
     };
   });
 

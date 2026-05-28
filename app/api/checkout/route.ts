@@ -1,149 +1,156 @@
 import { NextRequest, NextResponse } from "next/server";
-import Razorpay from "razorpay";
 import crypto from "crypto";
-import { getSessionUser } from "@/lib/session";
 import prisma from "@/lib/db";
+import { sendPaymentSuccessEmail, sendAdminOrderNotificationEmail, OrderItemForEmail } from "@/lib/email";
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
-
-// POST /api/checkout — Create a Razorpay order
+// POST /api/checkout — Place guest order (handles both COD & verified Online Razorpay)
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSessionUser();
-    if (!session) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    const cart = await prisma.cart.findUnique({
-      where: { userId: session.sub },
-      include: {
-        cartItems: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                retailPrice: true,
-                wholesalePrice: true,
-                wholesaleMinQuantity: true,
-                discount: true,
-                quantity: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!cart || cart.cartItems.length === 0) {
-      return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
-    }
-
-    // Calculate total with wholesale pricing
-    let total = 0;
-    for (const item of cart.cartItems) {
-      const product = item.product;
-      let unitPrice = product.retailPrice;
-      if (item.quantity >= product.wholesaleMinQuantity) {
-        unitPrice = product.wholesalePrice;
-      }
-      if (product.discount) {
-        unitPrice = unitPrice * (1 - product.discount / 100);
-      }
-      total += unitPrice * item.quantity;
-    }
-
-    // Razorpay expects amount in paise (smallest currency unit)
-    const amountInPaise = Math.round(total * 100);
-
-    // Receipt max 40 chars - use short user id + timestamp
-    const shortUserId = session.sub.slice(0, 8);
-    const receipt = `rcpt_${shortUserId}_${Date.now()}`;
-
-    const order = await razorpay.orders.create({
-      amount: amountInPaise,
-      currency: "INR",
-      receipt,
-    });
-
-    return NextResponse.json({
-      orderId: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      keyId: process.env.RAZORPAY_KEY_ID,
-    });
-  } catch (error) {
-    console.error("Razorpay order creation error:", error);
-    return NextResponse.json(
-      { error: "Failed to create payment order" },
-      { status: 500 }
-    );
-  }
-}
-
-// PATCH /api/checkout — Verify Razorpay payment signature
-export async function PATCH(request: NextRequest) {
-  try {
-    const session = await getSessionUser();
-    if (!session) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
     const body = await request.json();
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
+    const { 
+      customerName, 
+      customerEmail, 
+      customerPhone, 
+      shippingAddress, 
+      paymentMethod, 
+      cartItems,
+      // Online payment credentials (if ONLINE)
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature
+    } = body;
 
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-      return NextResponse.json(
-        { error: "Missing payment verification data" },
-        { status: 400 }
-      );
+    // 1. Basic validation
+    if (!customerName || !customerEmail || !customerPhone || !shippingAddress || !paymentMethod || !cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+      return NextResponse.json({ error: "Missing required order information." }, { status: 400 });
     }
 
-    // Verify signature
-    const generatedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-      .digest("hex");
-
-    if (generatedSignature !== razorpay_signature) {
-      return NextResponse.json(
-        { error: "Payment verification failed" },
-        { status: 400 }
-      );
+    if (paymentMethod !== "CASH_ON_DELIVERY" && paymentMethod !== "ONLINE") {
+      return NextResponse.json({ error: "Invalid payment method." }, { status: 400 });
     }
 
-    // Fetch actual payment method used from Razorpay
-    let actualPaymentMethod = "NETBANKING";
-    try {
-      const paymentDetails = await razorpay.payments.fetch(razorpay_payment_id);
-      const method = (paymentDetails as any).method as string | undefined;
-      if (method === "card") {
-        const cardType = (paymentDetails as any).card?.type as string | undefined;
-        actualPaymentMethod =
-          cardType === "debit" ? "DEBIT_CARD" : "CREDIT_CARD";
-      } else if (method === "upi") {
-        actualPaymentMethod = "UPI";
-      } else if (method === "netbanking") {
-        actualPaymentMethod = "NETBANKING";
+    // 2. Signature verification for ONLINE payments
+    if (paymentMethod === "ONLINE") {
+      if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+        return NextResponse.json({ error: "Missing Razorpay verification credentials." }, { status: 400 });
       }
-      // wallet, emi → default NETBANKING
-    } catch {
-      // Non-fatal — fall back to NETBANKING if fetch fails
+
+      const secret = (process.env.RAZORPAY_KEY_SECRET || "").trim();
+      const generatedSignature = crypto
+        .createHmac("sha256", secret)
+        .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+        .digest("hex");
+
+      if (generatedSignature !== razorpaySignature) {
+        return NextResponse.json({ error: "Payment verification failed." }, { status: 400 });
+      }
     }
+
+    // 3. Retrieve database products and calculate totals securely
+    let total = 0;
+    const orderItemsToCreate: { productId: string; quantity: number; price: number }[] = [];
+    const emailItems: OrderItemForEmail[] = [];
+
+    for (const item of cartItems) {
+      const product = await prisma.product.findUnique({
+        where: { id: item.productId }
+      });
+
+      if (!product) {
+        return NextResponse.json({ error: `Product with ID ${item.productId} not found.` }, { status: 400 });
+      }
+
+      if (product.quantity < item.quantity) {
+        return NextResponse.json({ error: `Insufficient inventory for product: ${product.name}.` }, { status: 400 });
+      }
+
+      let price = product.retailPrice;
+      if (
+        product.wholesalePrice !== null &&
+        product.wholesaleMinQuantity !== null &&
+        item.quantity >= product.wholesaleMinQuantity
+      ) {
+        price = product.wholesalePrice;
+      } else if (product.discount) {
+        price = price * (1 - product.discount / 100);
+      }
+
+      total += price * item.quantity;
+
+      orderItemsToCreate.push({
+        productId: product.id,
+        quantity: item.quantity,
+        price: price
+      });
+
+      emailItems.push({
+        name: product.name,
+        quantity: item.quantity,
+        price: price
+      });
+    }
+
+    // 4. Create order and deduct stock in a single transaction
+    const order = await prisma.$transaction(async (tx) => {
+      // Deduct quantities
+      for (const item of cartItems) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            quantity: {
+              decrement: item.quantity
+            }
+          }
+        });
+      }
+
+      // Create Order
+      return tx.order.create({
+        data: {
+          customerName,
+          customerEmail,
+          customerPhone,
+          shippingAddress,
+          total,
+          paymentMethod,
+          paymentStatus: paymentMethod === "ONLINE" ? "COMPLETED" : "PENDING",
+          status: paymentMethod === "ONLINE" ? "CONFIRMED" : "PENDING",
+          razorpayOrderId: paymentMethod === "ONLINE" ? razorpayOrderId : null,
+          razorpayPaymentId: paymentMethod === "ONLINE" ? razorpayPaymentId : null,
+          orderItems: {
+            create: orderItemsToCreate
+          }
+        }
+      });
+    });
+
+    // 5. Send Resend transactional emails asynchronously
+    const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || "admin@welcona.com";
+    
+    // Email to customer
+    sendPaymentSuccessEmail(customerEmail, order.id, total, emailItems, paymentMethod)
+      .catch(err => console.error("Error sending customer email:", err));
+
+    // Email to admin
+    sendAdminOrderNotificationEmail(
+      adminEmail, 
+      customerName, 
+      customerEmail, 
+      customerPhone, 
+      shippingAddress, 
+      order.id, 
+      total, 
+      emailItems, 
+      paymentMethod
+    ).catch(err => console.error("Error sending admin notification:", err));
 
     return NextResponse.json({
-      verified: true,
-      razorpayOrderId: razorpay_order_id,
-      razorpayPaymentId: razorpay_payment_id,
-      actualPaymentMethod,
+      success: true,
+      order
     });
+
   } catch (error) {
-    console.error("Payment verification error:", error);
-    return NextResponse.json(
-      { error: "Payment verification failed" },
-      { status: 500 }
-    );
+    console.error("Checkout order processing error:", error);
+    return NextResponse.json({ error: "Failed to process order." }, { status: 500 });
   }
 }

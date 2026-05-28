@@ -5,24 +5,13 @@ import { MarqueeStrip } from "@/components/users/home/MarqueeStrip";
 import { HotTabs } from "@/components/users/home/HotTabs";
 import { CategorySection } from "@/components/users/home/CategorySection";
 import { StatsSection } from "@/components/users/home/StatsSection";
-import { WhyWelcona } from "@/components/users/home/WhyWelcona";
-import { BottomCta } from "@/components/users/home/BottomCta";
-import { OffersBanner } from "@/components/users/home/OffersBanner";
+import prisma from "@/lib/db";
 
 export const metadata = {
   title: "Welcona — Luxury Bath Fittings, Factory Direct",
   description:
     "Discover Welcona's curated collection of premium showers, taps, and bath accessories. Factory-direct pricing, 2-year warranty, pan India delivery.",
 };
-
-const HOT_TABS = [
-  { id: "all", label: "All Products", apiFilter: "" },
-  { id: "deals", label: "Hot Deals", apiFilter: "sort=discount" },
-  { id: "new", label: "New Arrivals", apiFilter: "sort=newest" },
-  { id: "showers", label: "Showers", apiFilter: "q=shower" },
-  { id: "taps", label: "Taps", apiFilter: "q=tap" },
-  { id: "bulk", label: "Bulk Orders", apiFilter: "sort=wholesale" },
-];
 
 const HERO_CONFIG = {
   enabled: true,
@@ -35,30 +24,6 @@ const HERO_CONFIG = {
   primaryCtaLink: "/products",
   secondaryCtaText: "View Offers",
   secondaryCtaLink: "/products?sort=discount",
-};
-
-const CATEGORY_CONFIG = {
-  enabled: true,
-  items: [
-    {
-      title: "Premium Showers",
-      description:
-        "Transform your daily shower into a spa-like ritual. Our premium shower systems deliver the perfect balance of pressure, temperature, and style.",
-      image:
-        "https://images.unsplash.com/photo-1620626011761-996317702519?auto=format&fit=crop&w=800&q=80",
-      href: "/products?q=shower",
-      tags: ["Rainfall", "Thermostatic", "Smart Control", "LED"],
-    },
-    {
-      title: "Luxury Taps & Faucets",
-      description:
-        "Precision-engineered taps that combine timeless design with cutting-edge technology. Built to last decades, not years.",
-      image:
-        "https://images.unsplash.com/photo-1585771724684-38269d6639fd?auto=format&fit=crop&w=800&q=80",
-      href: "/products?q=tap",
-      tags: ["Chrome Finish", "Anti-scale", "Single Lever", "Eco Flow"],
-    },
-  ],
 };
 
 const STATS_CONFIG = {
@@ -90,30 +55,66 @@ export default async function HomePage() {
     redirect("/admin");
   }
 
+  // ─── Fetch Categories Dynamically from Prisma ─────────────────────────────
+  const dbCategories = await prisma.category.findMany({
+    orderBy: { name: "asc" },
+  });
+
+  // ─── Dynamic Hot Tabs Generation (No Hardcoded Categories) ──────────────────
+  const dynamicHotTabs = [
+    { id: "all", label: "All Products", apiFilter: "" },
+    { id: "deals", label: "Best Deals", apiFilter: "sort=discount" },
+    { id: "bulk", label: "Bulk Orders", apiFilter: "wholesale=true" },
+    ...dbCategories.map((cat) => ({
+      id: cat.name.toLowerCase().replace(/\s+/g, "-"),
+      label: cat.name,
+      apiFilter: `categoryId=${cat.id}`,
+    })),
+  ];
+
+  // ─── Dynamic Category Section Config ──────────────────────────────────────
+  const categoryImages: Record<string, string> = {
+    "Basin Mixers": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80",
+    "Showers": "https://images.unsplash.com/photo-1620626011761-996317702519?auto=format&fit=crop&w=800&q=80",
+    "Kitchen Taps": "https://images.unsplash.com/photo-1585771724684-38269d6639fd?auto=format&fit=crop&w=800&q=80",
+    "Bath Accessories": "https://images.unsplash.com/photo-1615873968403-89e068629265?auto=format&fit=crop&w=800&q=80",
+  };
+
+  const categoryTags: Record<string, string[]> = {
+    "Basin Mixers": ["Brushed Gold", "Chrome Finishes", "Solid Brass", "Ceramic Cartridge"],
+    "Showers": ["Rainfall Spray", "Multi-Flow", "Thermostatic Controls", "Anti-Clog"],
+    "Kitchen Taps": ["Pull-Out Spray", "High Arch Spout", "Dual Function", "Swivel 360°"],
+    "Bath Accessories": ["Designer Robe Hooks", "Solid Towel Rails", "Premium Soap Holders", "Rust Proof"],
+  };
+
+  const dynamicCategoryItems = dbCategories.map((cat) => ({
+    title: cat.name,
+    description: cat.description || "Premium bathroom fittings and accessories designed with pure elegance and engineering excellence.",
+    image: cat.image || categoryImages[cat.name] || "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80",
+    href: `/products?categoryId=${cat.id}`,
+    tags: categoryTags[cat.name] || ["Premium Finish", "Solid Build", "Modern Style", "7 Year Warranty"],
+  }));
+
+  const dynamicCategoryConfig = {
+    enabled: true,
+    items: dynamicCategoryItems,
+  };
+
   return (
     <main>
-      <HeroSection config={HERO_CONFIG} />
+      <HeroSection  />
 
       {/* 2 — Animated trust marquee strip */}
       <MarqueeStrip />
 
       {/* 3 — Hot tabs product browser */}
-      <HotTabs tabs={HOT_TABS} />
+      <HotTabs tabs={dynamicHotTabs} />
 
       {/* 4 — Category showcase (alternating left/right with images) */}
-      <CategorySection config={CATEGORY_CONFIG} />
+      <CategorySection />
 
       {/* 5 — Animated stats counters */}
       <StatsSection config={STATS_CONFIG} />
-
-      {/* 6 — Offers banner with image background */}
-      <OffersBanner config={OFFERS_BANNER_CONFIG} />
-
-      {/* 7 — Why Welcona trust features */}
-      <WhyWelcona />
-
-      {/* 8 — Bottom CTA */}
-      <BottomCta />
     </main>
   );
 }

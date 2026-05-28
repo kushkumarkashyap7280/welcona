@@ -49,17 +49,14 @@ type Order = {
   status: string;
   paymentStatus: string;
   paymentMethod: string;
-  shippingAddress: any;
+  shippingAddress: string;
   razorpayOrderId: string | null;
   razorpayPaymentId: string | null;
   createdAt: string;
   updatedAt: string;
-  user: {
-    id: string;
-    fullName: string | null;
-    email: string;
-    mobile: string | null;
-  };
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
   orderItems: OrderItem[];
 };
 
@@ -238,9 +235,7 @@ export default function AdminOrderDetailPage() {
     );
   }
 
-  const addr = order.shippingAddress ?? {};
-  const addrLine = [addr.line1, addr.line2].filter(Boolean).join(", ");
-  const addrCity = [addr.city, addr.state, addr.postalCode].filter(Boolean).join(", ");
+
 
   return (
     <div className="space-y-6">
@@ -384,19 +379,19 @@ export default function AdminOrderDetailPage() {
               <User className="h-4 w-4" /> Customer
             </h2>
             <div className="space-y-1.5 text-sm text-muted-foreground">
-              {order.user.fullName && (
-                <p className="font-medium text-foreground">
-                  {order.user.fullName}
+              {order.customerName && (
+                <p className="font-semibold text-foreground">
+                  {order.customerName}
                 </p>
               )}
               <div className="flex items-center gap-1.5">
                 <Mail className="h-3.5 w-3.5 shrink-0" />
-                <span>{order.user.email}</span>
+                <span>{order.customerEmail}</span>
               </div>
-              {order.user.mobile && (
+              {order.customerPhone && (
                 <div className="flex items-center gap-1.5">
                   <Phone className="h-3.5 w-3.5 shrink-0" />
-                  <span>{order.user.mobile}</span>
+                  <span>{order.customerPhone}</span>
                 </div>
               )}
             </div>
@@ -407,10 +402,8 @@ export default function AdminOrderDetailPage() {
             <h2 className="flex items-center gap-2 text-base font-semibold mb-3">
               <MapPin className="h-4 w-4" /> Shipping Address
             </h2>
-            <div className="text-sm space-y-0.5 text-muted-foreground">
-              {addrLine && <p>{addrLine}</p>}
-              {addrCity && <p>{addrCity}</p>}
-              {addr.country && <p>{addr.country}</p>}
+            <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+              {order.shippingAddress}
             </div>
           </div>
 

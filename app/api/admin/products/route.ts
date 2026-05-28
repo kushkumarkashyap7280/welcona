@@ -66,12 +66,6 @@ export async function GET(request: NextRequest) {
           images: {
             orderBy: [{ isPrimary: "desc" }, { index: "asc" }, { createdAt: "asc" }],
           },
-          ratings: {
-            select: {
-              id: true,
-              rating: true,
-            },
-          },
         },
       }),
       prisma.category.findMany({
@@ -84,12 +78,6 @@ export async function GET(request: NextRequest) {
     ]);
 
     const data = items.map((item) => {
-      const reviewCount = item.ratings.length;
-      const avgRating =
-        reviewCount === 0
-          ? 0
-          : item.ratings.reduce((sum, entry) => sum + entry.rating, 0) / reviewCount;
-
       return {
         id: item.id,
         name: item.name,
@@ -101,14 +89,12 @@ export async function GET(request: NextRequest) {
         material: item.material,
         tags: item.tags,
         retailPrice: item.retailPrice,
+        discount: item.discount,
         wholesalePrice: item.wholesalePrice,
         wholesaleMinQuantity: item.wholesaleMinQuantity,
-        discount: item.discount,
         quantity: item.quantity,
         category: item.category,
         images: item.images,
-        reviewCount,
-        avgRating,
         createdAt: item.createdAt.toISOString(),
         updatedAt: item.updatedAt.toISOString(),
       };

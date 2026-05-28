@@ -23,9 +23,9 @@ type ProductActionInput = {
   categoryId: string;
   quantity: number | string;
   retailPrice: number | string;
-  wholesalePrice: number | string;
-  wholesaleMinQuantity: number | string;
   discount?: number | string | null;
+  wholesalePrice?: number | string | null;
+  wholesaleMinQuantity?: number | string | null;
   description?: string | null;
   warranty?: string | null;
   finish?: string | null;
@@ -63,12 +63,18 @@ function normalizeProductPayload(data: ProductActionInput) {
     categoryId: String(data.categoryId ?? "").trim(),
     quantity: Number(data.quantity),
     retailPrice: Number(data.retailPrice),
-    wholesalePrice: Number(data.wholesalePrice),
-    wholesaleMinQuantity: Number(data.wholesaleMinQuantity),
     discount:
       data.discount === "" || data.discount === null || data.discount === undefined
         ? null
         : Number(data.discount),
+    wholesalePrice:
+      data.wholesalePrice === "" || data.wholesalePrice === null || data.wholesalePrice === undefined
+        ? null
+        : Number(data.wholesalePrice),
+    wholesaleMinQuantity:
+      data.wholesaleMinQuantity === "" || data.wholesaleMinQuantity === null || data.wholesaleMinQuantity === undefined
+        ? 1
+        : Number(data.wholesaleMinQuantity),
     description: data.description?.trim() || null,
     warranty: data.warranty?.trim() || null,
     finish: data.finish?.trim() || null,
@@ -119,9 +125,9 @@ export async function createProductAction(data: ProductActionInput) {
         categoryId: payload.categoryId,
         quantity: payload.quantity,
         retailPrice: payload.retailPrice,
+        discount: payload.discount,
         wholesalePrice: payload.wholesalePrice,
         wholesaleMinQuantity: payload.wholesaleMinQuantity,
-        discount: payload.discount,
         description: payload.description,
         warranty: payload.warranty,
         finish: payload.finish,
@@ -166,9 +172,9 @@ export async function updateProductAction(id: string, data: ProductActionInput) 
         categoryId: payload.categoryId,
         quantity: payload.quantity,
         retailPrice: payload.retailPrice,
+        discount: payload.discount,
         wholesalePrice: payload.wholesalePrice,
         wholesaleMinQuantity: payload.wholesaleMinQuantity,
-        discount: payload.discount,
         description: payload.description,
         warranty: payload.warranty,
         finish: payload.finish,

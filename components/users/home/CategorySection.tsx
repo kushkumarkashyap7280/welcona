@@ -5,10 +5,7 @@ import Link from "next/link";
 import { motion, type Variants } from "framer-motion";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { CategoriesConfig } from "@/lib/home-config";
-import { isGoogleHostedImageSrc, normalizeImageSrc } from "@/lib/utils";
 
 const sectionVariants: Variants = {
   hidden: { opacity: 0, y: 50 },
@@ -20,15 +17,8 @@ const sectionVariants: Variants = {
 };
 
 const imageRevealVariants: Variants = {
-  hidden: (fromRight: boolean) => ({
-    clipPath: fromRight ? "inset(0 0 0 100%)" : "inset(0 100% 0 0)",
-    opacity: 0,
-  }),
-  visible: {
-    clipPath: "inset(0 0% 0 0%)",
-    opacity: 1,
-    transition: { duration: 0.95, ease: [0.77, 0, 0.175, 1] },
-  },
+  hidden: { opacity: 0, y: 24, scale: 1.02 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
 };
 
 const textVariants: Variants = {
@@ -41,13 +31,47 @@ const textItemVariants: Variants = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.6, ease: "easeOut" } },
 };
 
-interface Props {
-  config: CategoriesConfig;
-}
 
-export function CategorySection({ config }: Props) {
-  if (!config.items.length) return null;
 
+export function CategorySection() {
+
+
+  // Mock data for categories (four tiles) — using local images in `public/categoryHomePage/`
+  const categories = [
+    {
+      title: "Basin Mixers",
+      description:
+        "Deck and wall-mounted mixers for modern vanity spaces.",
+      image: "/categoryHomePage/basinCategory.png",
+      tags: ["Brushed Gold", "Chrome Finishes", "Solid Brass", "Ceramic Cartridge"],
+      tagline: "Deck & wall mixers for modern vanities",
+      href: "/products?category=basin-mixers",
+    },
+    {
+      title: "Showers",
+      description: "Rain showers, thermostat sets, and exposed systems.",
+      image: "/categoryHomePage/showerCategory.png",
+      tags: ["Rainfall Spray", "Thermostatic Controls", "Anti-Clog"],
+      tagline: "Rain showers & thermostatic sets for comfort",
+      href: "/products?category=showers",
+    },
+    {
+      title: "Kitchen Taps",
+      description: "Precision kitchen taps with pull-out sprays and high-arch spouts.",
+      image: "/categoryHomePage/tapsCategory.png",
+      tags: ["Pull-Out Spray", "High Arch Spout", "360° Swivel"],
+      tagline: "Precision kitchen taps with pull-out sprays",
+      href: "/products?category=kitchen-taps",
+    },
+    {
+      title: "Bath Accessories",
+      description: "Daily-use rails, hooks, holders, and shelves.",
+      image: "/categoryHomePage/AccessoriesCategory.png",
+      tags: ["Premium Finish", "Rust Proof", "Designer Styles"],
+      tagline: "Daily-use rails, holders, and premium accessories",
+      href: "/products?category=bath-accessories",
+    },
+  ];
   return (
     <section className="py-20 overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -67,7 +91,7 @@ export function CategorySection({ config }: Props) {
 
         {/* Alternating sections */}
         <div className="space-y-24">
-          {config.items.map((cat, i) => {
+          {categories.map((cat, i) => {
             const imageOnLeft = i % 2 === 0;
 
             return (
@@ -92,25 +116,13 @@ export function CategorySection({ config }: Props) {
                   className="relative group overflow-hidden rounded-3xl aspect-4/3 shadow-2xl"
                 >
                   <Image
-                    src={normalizeImageSrc(cat.image)}
+                    src={cat.image}
                     alt={cat.title}
                     fill
-                    unoptimized={isGoogleHostedImageSrc(cat.image)}
                     className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     sizes="(max-width: 1024px) 100vw, 50vw"
                   />
-                  {/* Gradient overlay */}
-                  <div
-                    className={cn(
-                      "absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent"
-                    )}
-                  />
-                  {/* Floating category badge */}
-                  <div className="absolute top-4 left-4">
-                    <Badge className="bg-white/90 text-black text-xs font-semibold border-0 shadow-sm">
-                      {cat.tags[0]}
-                    </Badge>
-                  </div>
+                  {/* image rendered above; no overlay or badge to keep visuals clean */}
                 </motion.div>
 
                 {/* Content side */}
@@ -131,6 +143,7 @@ export function CategorySection({ config }: Props) {
                     <h3 className="text-3xl sm:text-4xl font-bold tracking-tight leading-tight">
                       {cat.title}
                     </h3>
+                    <p className="text-primary mt-2 font-medium">{cat.tagline}</p>
                   </motion.div>
 
                   <motion.p
@@ -142,7 +155,7 @@ export function CategorySection({ config }: Props) {
 
                   {/* Feature tags */}
                   <motion.div variants={textItemVariants} className="flex flex-wrap gap-2">
-                    {cat.tags.map((tag) => (
+                    {cat.tags.map((tag: string) => (
                       <span
                         key={tag}
                         className="inline-flex items-center gap-1.5 text-sm text-foreground/80 bg-muted rounded-full px-3 py-1.5 border border-border/60"
@@ -155,12 +168,8 @@ export function CategorySection({ config }: Props) {
 
                   {/* CTA */}
                   <motion.div variants={textItemVariants}>
-                    <Button
-                      asChild
-                      size="lg"
-                      className="rounded-full px-8 gap-2 font-semibold group"
-                    >
-                      <Link href={cat.href}>
+                    <Button asChild size="lg" className="rounded-full px-8 gap-2 font-semibold group">
+                      <Link href="/products">
                         Shop {cat.title}
                         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                       </Link>
