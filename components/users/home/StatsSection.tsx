@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import { useInView, animate } from "framer-motion";
 import { motion, type Variants } from "framer-motion";
-import type { StatsConfig } from "@/lib/home-config";
+
 
 const containerVariants: Variants = {
   hidden: {},
@@ -46,11 +46,9 @@ function CounterNumber({ value, suffix }: { value: number; suffix: string }) {
 
 // ─── Stats Section ────────────────────────────────────────────────────────────
 
-interface Props {
-  config: StatsConfig;
-}
 
-export function StatsSection({ config }: Props) {
+
+export function StatsSection({ config }: any) {
   return (
     <section className="py-16 border-y border-border/50 bg-muted/30">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -71,7 +69,7 @@ export function StatsSection({ config }: Props) {
           viewport={{ once: true, margin: "-40px" }}
           className="grid grid-cols-2 md:grid-cols-4 gap-6"
         >
-          {config.items.map((stat) => (
+          {config.items.map((stat :any) => (
             <motion.div
               key={stat.label}
               variants={cardVariants}
