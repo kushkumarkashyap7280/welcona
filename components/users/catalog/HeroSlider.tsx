@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion, type Variants, useReducedMotion } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const HERO_IMAGES = [
   { url: "/productCatelogAnimationImages/image1.png", title: "Luxury Bath Fittings", subtitle: "Crafted for lasting elegance, delivered direct from factory" },
@@ -75,7 +74,7 @@ export default function HeroSlider() {
       <AnimatePresence initial={false} custom={dir} mode="sync">
         <motion.div key={current} custom={dir} variants={prefersReduced ? {} : slideVariants} initial="enter" animate="center" exit="exit" className="absolute inset-0">
           <Image src={slide.url} alt={slide.title} fill className="object-cover" priority={current === 0} sizes="100vw" />
-          <div className="absolute inset-0 bg-black/20" />
+          <div className="absolute inset-0 bg-black/40" />
         </motion.div>
       </AnimatePresence>
 
@@ -87,12 +86,7 @@ export default function HeroSlider() {
         </motion.div>
       </AnimatePresence>
 
-      <button onClick={() => go(current - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/30 hover:bg-black/60 backdrop-blur-sm text-white flex items-center justify-center transition-colors" aria-label="Previous image">
-        <ChevronLeft className="h-4 w-4" />
-      </button>
-      <button onClick={() => go(current + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/30 hover:bg-black/60 backdrop-blur-sm text-white flex items-center justify-center transition-colors" aria-label="Next image">
-        <ChevronRight className="h-4 w-4" />
-      </button>
+      {/* Navigation arrows removed — using autoplay and dot indicators only */}
 
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
         {HERO_IMAGES.map((_, i) => (
