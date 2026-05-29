@@ -1,12 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ShoppingCart } from "lucide-react";
+import { CartDrawer } from "@/components/users/CartDrawer";
 
 export function CartIndicator() {
   const [count, setCount] = useState(0);
   const [visible, setVisible] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const fetchCount = () => {
     try {
@@ -44,17 +45,20 @@ export function CartIndicator() {
     return () => window.removeEventListener("cart-updated", fetchCount);
   }, []);
 
-  if (!visible) return null;
-
   return (
-    <Link
-      href="/cart"
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-full bg-primary px-5 py-3 text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
-    >
-      <ShoppingCart className="h-5 w-5 animate-pulse" />
-      <span className="text-sm font-semibold">
-        Checkout Cart &middot; {count} {count === 1 ? "item" : "items"}
-      </span>
-    </Link>
+    <>
+      {visible && (
+        <button
+          onClick={() => setDrawerOpen(true)}
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-full bg-primary px-5 py-3 text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
+        >
+          <ShoppingCart className="h-5 w-5 animate-pulse" />
+          <span className="text-sm font-semibold">
+            Cart &middot; {count} {count === 1 ? "item" : "items"}
+          </span>
+        </button>
+      )}
+      <CartDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+    </>
   );
 }

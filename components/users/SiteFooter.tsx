@@ -45,12 +45,10 @@ export function SiteFooter() {
   const shopLinks = [
     { href: "/", label: "Home" },
     { href: "/products", label: "All Products" },
-    { href: "/cart", label: "Cart" },
   ] as const;
 
   const supportLinks = [
     { href: "/about", label: "About Us" },
-    { href: "/privacy", label: "Privacy Policy" },
     { href: "/terms", label: "Terms & Conditions" },
   ] as const;
 
@@ -64,13 +62,13 @@ export function SiteFooter() {
               Premium CP fittings and home utility products with dependable support, secure checkout,
               and fast assistance for every query.
             </p>
-            <button
+            {/* <button
               type="button"
               onClick={openAdminLogin}
               className="text-xs font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
             >
               Admin Login
-            </button>
+            </button> */}
           </section>
 
           <section className="space-y-3">
@@ -132,12 +130,12 @@ export function SiteFooter() {
           <p className="mt-2 text-[11px] text-muted-foreground/80">
             Built and Powered by{" "}
             <a
-              href="https://www.linkedin.com/in/kush-kumar-b10020302/"
+              href="https://kushkumar.me/"
               target="_blank"
               rel="noreferrer"
               className="font-semibold text-foreground transition-colors hover:text-primary"
             >
-              SARVAGYA LABS
+              kushkumar
             </a>
           </p>
         </div>

@@ -528,7 +528,7 @@ export function ProductDetailsClient({ productId }: { productId: string }) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4 text-xs text-muted-foreground">
-                {product.warranty || "Manufacturer-backed warranty."}
+                {product.warranty || "Up to 10 years (varies by product)"}
               </CardContent>
             </Card>
             <Card className="rounded-2xl border-border/70 bg-card/85 py-0">

@@ -7,18 +7,29 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET!,
 });
 
+// Delivery charge map
+const DELIVERY_CHARGES: Record<string, number> = {
+  CUSTOMER_PICKUP: 0,
+  DELHI: 150,
+  OUTSIDE_DELHI: 250,
+};
+
 // POST /api/checkout/razorpay — Generate a Razorpay payment order for guest checkout
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { cartItems } = body;
+    const { cartItems, deliveryOption } = body;
 
     if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
     }
 
+    if (!deliveryOption || !["CUSTOMER_PICKUP", "DELHI", "OUTSIDE_DELHI"].includes(deliveryOption)) {
+      return NextResponse.json({ error: "Invalid delivery option" }, { status: 400 });
+    }
+
     // Calculate total securely from actual DB records
-    let total = 0;
+    let itemsTotal = 0;
     for (const item of cartItems) {
       const product = await prisma.product.findUnique({
         where: { id: item.productId },
@@ -39,8 +50,12 @@ export async function POST(request: NextRequest) {
       } else if (product.discount) {
         price = price * (1 - product.discount / 100);
       }
-      total += price * item.quantity;
+      itemsTotal += price * item.quantity;
     }
+
+    // Add delivery charge
+    const deliveryCharge = DELIVERY_CHARGES[deliveryOption] ?? 0;
+    const total = itemsTotal + deliveryCharge;
 
     // Razorpay expects amount in paise (subunit)
     const amountInPaise = Math.round(total * 100);

@@ -9,8 +9,16 @@
 * 🟢 You can import this file directly.
 */
 
+export const DeliveryOption = {
+  CUSTOMER_PICKUP: 'CUSTOMER_PICKUP',
+  DELHI: 'DELHI',
+  OUTSIDE_DELHI: 'OUTSIDE_DELHI'
+} as const
+
+export type DeliveryOption = (typeof DeliveryOption)[keyof typeof DeliveryOption]
+
+
 export const PaymentMethod = {
-  CASH_ON_DELIVERY: 'CASH_ON_DELIVERY',
   ONLINE: 'ONLINE'
 } as const
 

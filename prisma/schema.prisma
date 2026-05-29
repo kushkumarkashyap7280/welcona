@@ -66,6 +66,13 @@ model ProductImage {
   updatedAt DateTime @updatedAt
 }
 
+// ─── DELIVERY OPTIONS ────────────────────────────────────────────────────────
+enum DeliveryOption {
+  CUSTOMER_PICKUP  // Customer picks up from shop within 7 working days
+  DELHI            // Delivery within Delhi (₹150)
+  OUTSIDE_DELHI    // Delivery outside Delhi (₹250)
+}
+
 // ─── SIMPLIFIED ORDERS (STORES GUEST DETAILS INLINE) ────────────────────────
 model Order {
   id              String        @id @default(uuid())
@@ -77,6 +84,10 @@ model Order {
   paymentStatus   PaymentStatus @default(PENDING)
   paymentMethod   PaymentMethod
   
+  // Delivery option tracking
+  deliveryOption  DeliveryOption
+  deliveryCharge  Float          @default(0)
+
   // Razorpay payment tracking
   razorpayOrderId   String?
   razorpayPaymentId String?
@@ -88,7 +99,6 @@ model Order {
 }
 
 enum PaymentMethod {
-  CASH_ON_DELIVERY
   ONLINE
 }
 
@@ -100,7 +110,7 @@ enum PaymentStatus {
 }
 
 enum OrderStatus {
-  PENDING    // Unapproved (especially COD)
+  PENDING    // Awaiting payment confirmation
   CONFIRMED  // Confirmed/Accepted by Admin
   SHIPPED
   DELIVERED

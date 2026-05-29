@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils";
 import { isGoogleHostedImageSrc, normalizeImageSrc } from "@/lib/utils";
 import HeroSlider from "@/components/users/catalog/HeroSlider";
 import CategoryTabs from "@/components/users/catalog/CategoryTabs";
+import { ProductCard } from "@/components/users/ProductCard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -148,119 +149,7 @@ const textVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: "easeOut", delay: 0.2 } },
 };
 
-
-
-// ─── Category Tabs ─────────────────────────────────────────────────────────────
-
-
-
-// ─── Product Card ──────────────────────────────────────────────────────────────
-
-const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: "easeOut", delay: Math.min(i * 0.04, 0.32) },
-  }),
-};
-
-function ProductCard({ item, index }: { item: CatalogItem; index: number }) {
-  const primaryImage =
-    item.images.find((img) => img.isPrimary) ?? item.images.sort((a, b) => a.index - b.index)[0];
-  const discountedPrice = item.discount
-    ? item.retailPrice * (1 - item.discount / 100)
-    : item.retailPrice;
-
-  return (
-    <motion.div
-      variants={cardVariants}
-      custom={index}
-      initial="hidden"
-      animate="visible"
-      layout
-      className="group bg-card rounded-2xl border border-border/70 overflow-hidden hover:shadow-xl hover:border-primary/30 hover:-translate-y-1 transition-all duration-300"
-    >
-      <Link href={`/products/${item.id}`} className="block">
-        {/* Image */}
-        <div className="relative aspect-square overflow-hidden bg-muted">
-          {primaryImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={normalizeImageSrc(primaryImage.image)}
-              alt={item.name}
-              loading="lazy"
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          ) : (
-            <div className="flex w-full h-full items-center justify-center text-muted-foreground/40">
-              <Package className="h-10 w-10" />
-            </div>
-          )}
-
-          {/* Badges */}
-          <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1">
-            <Badge className="bg-background/90 text-foreground text-[10px] sm:text-xs px-1.5 py-0 sm:px-2.5 sm:py-0.5 shadow-none border-0 font-medium">
-              {item.category.name}
-            </Badge>
-            {item.discount && item.discount > 0 ? (
-              <Badge className="bg-red-500 text-white text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 border-0 shadow-sm">
-                -{Math.round(item.discount)}%
-              </Badge>
-            ) : null}
-          </div>
-
-          <div className="absolute bottom-0 inset-x-0 text-center py-0.5 sm:py-1 font-medium text-[10px] sm:text-xs bg-black/55 text-white backdrop-blur-sm">
-            {item.inStock ? (
-              <span className="inline-flex items-center gap-1">
-                <PackageCheck className="h-3 w-3" /> In Stock
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1">
-                <PackageX className="h-3 w-3" /> Out of Stock
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-2.5 sm:p-4 space-y-1.5 sm:space-y-2.5">
-          <h3 className="text-xs sm:text-sm font-semibold leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors">
-            {item.name}
-          </h3>
-
-
-
-          {/* Tags */}
-          {item.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {item.tags.slice(0, 3).map((tag) => (
-                <span
-                  key={tag}
-                  className="text-[9px] sm:text-xs text-muted-foreground bg-muted px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-full"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Price */}
-          <div className="flex items-baseline gap-1.5 pt-1 border-t border-border/50">
-            <span className="text-sm sm:text-base font-bold text-foreground">
-              {formatPrice(discountedPrice)}
-            </span>
-            {item.discount && item.discount > 0 ? (
-              <span className="text-[10px] sm:text-xs text-muted-foreground line-through">
-                {formatPrice(item.retailPrice)}
-              </span>
-            ) : null}
-          </div>
-        </div>
-      </Link>
-    </motion.div>
-  );
-}
+// Unified ProductCard is imported from components/users/ProductCard and used directly in the grid below.
 
 // ─── Pagination ────────────────────────────────────────────────────────────────
 

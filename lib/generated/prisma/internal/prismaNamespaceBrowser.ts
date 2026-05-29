@@ -144,6 +144,8 @@ export const OrderScalarFieldEnum = {
   total: 'total',
   paymentStatus: 'paymentStatus',
   paymentMethod: 'paymentMethod',
+  deliveryOption: 'deliveryOption',
+  deliveryCharge: 'deliveryCharge',
   razorpayOrderId: 'razorpayOrderId',
   razorpayPaymentId: 'razorpayPaymentId',
   status: 'status',

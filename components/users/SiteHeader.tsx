@@ -16,9 +16,7 @@ import { useState, useEffect } from "react";
 const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/products", label: "Products" },
-   { href: "/cart", label: "Cart" },
-   { href: "/about", label: "About" },
- 
+  { href: "/about", label: "About" },
 ];
 
 export function SiteHeader() {

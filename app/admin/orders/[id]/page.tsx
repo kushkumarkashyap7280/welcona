@@ -50,6 +50,8 @@ type Order = {
   paymentStatus: string;
   paymentMethod: string;
   shippingAddress: string;
+  deliveryOption: string;
+  deliveryCharge: number;
   razorpayOrderId: string | null;
   razorpayPaymentId: string | null;
   createdAt: string;
@@ -404,6 +406,32 @@ export default function AdminOrderDetailPage() {
             </h2>
             <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
               {order.shippingAddress}
+            </div>
+          </div>
+
+          {/* Delivery Details */}
+          <div className="rounded-xl border border-border/70 bg-card/90 p-5">
+            <h2 className="flex items-center gap-2 text-base font-semibold mb-3">
+              <Truck className="h-4 w-4" /> Delivery
+            </h2>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Option</span>
+                <span className="font-medium">
+                  {(order.deliveryOption || "").replace(/_/g, " ")}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Charge</span>
+                <span className="font-medium">
+                  {order.deliveryCharge > 0 ? formatPrice(order.deliveryCharge) : "FREE (Pickup)"}
+                </span>
+              </div>
+              {order.deliveryOption === "CUSTOMER_PICKUP" && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  ⚠ Customer must pick up within 7 working days (Mon–Sat, 9 AM – 7 PM)
+                </p>
+              )}
             </div>
           </div>
 

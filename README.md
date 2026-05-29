@@ -2,7 +2,7 @@ When using Razorpay in Test Mode (rzp_test_...), the popup appears correctly, bu
 
 In the Razorpay modal, select UPI or Card.
 If you choose Card, use mock credentials:
-Card Number: 4111 1111 1111 1111 (Standard Razorpay test card)
+Card Number: 6527 6589 0000 1005   (Standard Razorpay test card)
 Expiry: Any future date (e.g. 12/30)
 CVV: Any 3 digits (e.g. 123)
 

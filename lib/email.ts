@@ -8,6 +8,12 @@ export type OrderItemForEmail = {
   price: number;
 };
 
+const DELIVERY_LABELS: Record<string, string> = {
+  CUSTOMER_PICKUP: "Customer Pickup (from shop)",
+  DELHI: "Delhi Delivery",
+  OUTSIDE_DELHI: "Outside Delhi Delivery",
+};
+
 // ─── STUB OTP EMAIL (COMPATIBILITY) ─────────────────────────────────────────
 export async function sendOtpEmail(
   email: string,
@@ -21,16 +27,20 @@ export async function sendOtpEmail(
 export async function sendPaymentSuccessEmail(
   email: string,
   orderId: string,
-  totalAmount: number,
-  items: OrderItemForEmail[],
-  paymentMethod: string = "ONLINE"
+  itemsTotal: number,
+  deliveryCharge: number,
+  deliveryOption: string,
+  items: OrderItemForEmail[]
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const formattedTotal = new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(totalAmount);
+    const grandTotal = itemsTotal + deliveryCharge;
+
+    const formatCurrency = (amount: number) =>
+      new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+      }).format(amount);
 
     const itemsHtml = items.map(item => `
       <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e8e2d8; padding-bottom: 8px; margin-bottom: 8px;">
@@ -42,12 +52,12 @@ export async function sendPaymentSuccessEmail(
       </div>
     `).join("");
 
-    const isCod = paymentMethod === "CASH_ON_DELIVERY";
+    const deliveryLabel = DELIVERY_LABELS[deliveryOption] || deliveryOption;
 
     const { error } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || "Welcona <noreply@welcona.com>",
       to: email,
-      subject: isCod ? "Order Received - Cash on Delivery" : "Order Confirmed - Welcona",
+      subject: "Order Confirmed - Welcona",
       html: `
         <div style="font-family: 'Segoe UI', Tahoma, Verdana, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 24px; background: #faf9f6; border-radius: 16px;">
           <div style="text-align: center; margin-bottom: 32px;">
@@ -56,7 +66,7 @@ export async function sendPaymentSuccessEmail(
           </div>
           <div style="background: #ffffff; border: 1px solid #e8e2d8; border-radius: 12px; padding: 32px;">
             <p style="font-size: 16px; font-weight: 600; color: #4a4033; margin: 0 0 16px;">
-              ${isCod ? "Order Received!" : "Order Confirmed!"}
+              Order Confirmed!
             </p>
             <p style="font-size: 14px; color: #4a4033; margin: 0 0 24px;">
               Thank you for your purchase. Your order <strong>#${orderId.split("-")[0].toUpperCase()}</strong> has been received and is being processed.
@@ -70,13 +80,31 @@ export async function sendPaymentSuccessEmail(
             </div>
             
             <div style="margin-bottom: 16px; font-size: 13px; color: #4a4033;">
-              <strong>Payment Method:</strong> ${isCod ? "Cash on Delivery (COD)" : "Paid Online (Razorpay)"}<br/>
-              <strong>Payment Status:</strong> ${isCod ? "Pending Approval" : "Completed"}
+              <strong>Payment Method:</strong> Paid Online (Razorpay)<br/>
+              <strong>Payment Status:</strong> Completed
+            </div>
+
+            <div style="margin-bottom: 16px; font-size: 13px; color: #4a4033; background: #f5f3ef; border-radius: 8px; padding: 12px;">
+              <strong>Delivery Option:</strong> ${deliveryLabel}<br/>
+              <strong>Delivery Charge:</strong> ${deliveryCharge > 0 ? formatCurrency(deliveryCharge) : "FREE (Pickup)"}
+              ${deliveryOption === "CUSTOMER_PICKUP" ? '<br/><span style="font-size: 12px; color: #b8860b;">⚠ Please pick up within 7 working days (Mon–Sat, 9 AM – 7 PM)</span>' : ""}
+              ${deliveryOption === "DELHI" ? '<br/><span style="font-size: 12px; color: #8a7e6e;">Estimated delivery: 1–5 business days</span>' : ""}
+              ${deliveryOption === "OUTSIDE_DELHI" ? '<br/><span style="font-size: 12px; color: #8a7e6e;">Estimated delivery: 3–5 business days</span>' : ""}
             </div>
             
-            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e8e2d8; padding-top: 16px; margin-top: 24px;">
-              <span style="font-size: 14px; font-weight: 600; color: #4a4033;">Total Amount</span>
-              <span style="font-size: 18px; font-weight: 700; color: #b8960c;">${formattedTotal}</span>
+            <div style="border-top: 1px solid #e8e2d8; padding-top: 12px; margin-top: 16px;">
+              <div style="display: flex; justify-content: space-between; font-size: 13px; color: #4a4033; margin-bottom: 4px;">
+                <span>Items Subtotal</span>
+                <span>${formatCurrency(itemsTotal)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 13px; color: #4a4033; margin-bottom: 8px;">
+                <span>Delivery Charge</span>
+                <span>${deliveryCharge > 0 ? formatCurrency(deliveryCharge) : "FREE"}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e8e2d8; padding-top: 12px;">
+                <span style="font-size: 14px; font-weight: 600; color: #4a4033;">Grand Total</span>
+                <span style="font-size: 18px; font-weight: 700; color: #b8960c;">${formatCurrency(grandTotal)}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -103,16 +131,20 @@ export async function sendAdminOrderNotificationEmail(
   customerPhone: string,
   shippingAddress: string,
   orderId: string,
-  totalAmount: number,
-  items: OrderItemForEmail[],
-  paymentMethod: string
+  itemsTotal: number,
+  deliveryCharge: number,
+  deliveryOption: string,
+  items: OrderItemForEmail[]
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const formattedTotal = new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(totalAmount);
+    const grandTotal = itemsTotal + deliveryCharge;
+
+    const formatCurrency = (amount: number) =>
+      new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+      }).format(amount);
 
     const itemsHtml = items.map(item => `
       <div style="border-bottom: 1px solid #e8e2d8; padding-bottom: 6px; margin-bottom: 6px; font-size: 14px;">
@@ -120,12 +152,12 @@ export async function sendAdminOrderNotificationEmail(
       </div>
     `).join("");
 
-    const isCod = paymentMethod === "CASH_ON_DELIVERY";
+    const deliveryLabel = DELIVERY_LABELS[deliveryOption] || deliveryOption;
 
     const { error } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || "Welcona Admin Alerts <noreply@welcona.com>",
       to: adminEmail,
-      subject: `New Order Alert #${orderId.split("-")[0].toUpperCase()} [${paymentMethod}]`,
+      subject: `New Order Alert #${orderId.split("-")[0].toUpperCase()} [ONLINE | ${deliveryLabel}]`,
       html: `
         <div style="font-family: 'Segoe UI', Tahoma, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 32px 20px; background: #faf9f6; border-radius: 12px;">
           <div style="text-align: center; margin-bottom: 24px;">
@@ -142,6 +174,13 @@ export async function sendAdminOrderNotificationEmail(
               <strong>Shipping Address:</strong><br/>
               <span style="color: #8a7e6e; display: inline-block; margin-top: 4px;">${shippingAddress}</span>
             </p>
+
+            <h3 style="font-size: 15px; border-bottom: 1px solid #e8e2d8; padding-bottom: 8px; margin-top: 24px; color: #b8960c;">Delivery Details</h3>
+            <div style="font-size: 14px; margin: 8px 0; background: #f5f3ef; border-radius: 8px; padding: 12px;">
+              <strong>Delivery Option:</strong> ${deliveryLabel}<br/>
+              <strong>Delivery Charge:</strong> ${deliveryCharge > 0 ? formatCurrency(deliveryCharge) : "FREE (Pickup)"}
+              ${deliveryOption === "CUSTOMER_PICKUP" ? '<br/><span style="font-size: 12px; color: #b8860b;">⚠ Customer needs to pick up within 7 working days</span>' : ""}
+            </div>
             
             <h3 style="font-size: 15px; border-bottom: 1px solid #e8e2d8; padding-bottom: 8px; margin-top: 24px; color: #b8960c;">Order Summary</h3>
             <div style="margin-top: 12px;">
@@ -149,13 +188,23 @@ export async function sendAdminOrderNotificationEmail(
             </div>
             
             <div style="margin-top: 16px; font-size: 14px;">
-              <strong>Payment Method:</strong> ${paymentMethod}<br/>
-              <strong>Payment Status:</strong> ${isCod ? "PENDING (Requires Admin approval)" : "COMPLETED"}
+              <strong>Payment Method:</strong> ONLINE (Razorpay)<br/>
+              <strong>Payment Status:</strong> COMPLETED
             </div>
             
-            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e8e2d8; padding-top: 16px; margin-top: 24px;">
-              <span style="font-size: 14px; font-weight: 600;">Total Order Value</span>
-              <span style="font-size: 20px; font-weight: 700; color: #b8960c;">${formattedTotal}</span>
+            <div style="border-top: 1px solid #e8e2d8; padding-top: 12px; margin-top: 16px;">
+              <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px;">
+                <span>Items Subtotal</span>
+                <span style="font-weight: 600;">${formatCurrency(itemsTotal)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px;">
+                <span>Delivery Charge</span>
+                <span style="font-weight: 600;">${deliveryCharge > 0 ? formatCurrency(deliveryCharge) : "FREE"}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e8e2d8; padding-top: 12px;">
+                <span style="font-size: 14px; font-weight: 600;">Grand Total</span>
+                <span style="font-size: 20px; font-weight: 700; color: #b8960c;">${formatCurrency(grandTotal)}</span>
+              </div>
             </div>
           </div>
           

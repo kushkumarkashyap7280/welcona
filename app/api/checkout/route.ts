@@ -3,7 +3,14 @@ import crypto from "crypto";
 import prisma from "@/lib/db";
 import { sendPaymentSuccessEmail, sendAdminOrderNotificationEmail, OrderItemForEmail } from "@/lib/email";
 
-// POST /api/checkout — Place guest order (handles both COD & verified Online Razorpay)
+// Delivery charge map
+const DELIVERY_CHARGES: Record<string, number> = {
+  CUSTOMER_PICKUP: 0,
+  DELHI: 150,
+  OUTSIDE_DELHI: 250,
+};
+
+// POST /api/checkout — Place guest order (Online payment only via Razorpay)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -12,42 +19,41 @@ export async function POST(request: NextRequest) {
       customerEmail, 
       customerPhone, 
       shippingAddress, 
-      paymentMethod, 
       cartItems,
-      // Online payment credentials (if ONLINE)
+      deliveryOption,
+      // Online payment credentials
       razorpayOrderId,
       razorpayPaymentId,
       razorpaySignature
     } = body;
 
     // 1. Basic validation
-    if (!customerName || !customerEmail || !customerPhone || !shippingAddress || !paymentMethod || !cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+    if (!customerName || !customerEmail || !customerPhone || !shippingAddress || !cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
       return NextResponse.json({ error: "Missing required order information." }, { status: 400 });
     }
 
-    if (paymentMethod !== "CASH_ON_DELIVERY" && paymentMethod !== "ONLINE") {
-      return NextResponse.json({ error: "Invalid payment method." }, { status: 400 });
+    // 2. Validate delivery option
+    if (!deliveryOption || !["CUSTOMER_PICKUP", "DELHI", "OUTSIDE_DELHI"].includes(deliveryOption)) {
+      return NextResponse.json({ error: "Invalid delivery option." }, { status: 400 });
     }
 
-    // 2. Signature verification for ONLINE payments
-    if (paymentMethod === "ONLINE") {
-      if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
-        return NextResponse.json({ error: "Missing Razorpay verification credentials." }, { status: 400 });
-      }
-
-      const secret = (process.env.RAZORPAY_KEY_SECRET || "").trim();
-      const generatedSignature = crypto
-        .createHmac("sha256", secret)
-        .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-        .digest("hex");
-
-      if (generatedSignature !== razorpaySignature) {
-        return NextResponse.json({ error: "Payment verification failed." }, { status: 400 });
-      }
+    // 3. Signature verification for Online payments
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      return NextResponse.json({ error: "Missing Razorpay verification credentials." }, { status: 400 });
     }
 
-    // 3. Retrieve database products and calculate totals securely
-    let total = 0;
+    const secret = (process.env.RAZORPAY_KEY_SECRET || "").trim();
+    const generatedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+      .digest("hex");
+
+    if (generatedSignature !== razorpaySignature) {
+      return NextResponse.json({ error: "Payment verification failed." }, { status: 400 });
+    }
+
+    // 4. Retrieve database products and calculate totals securely
+    let itemsTotal = 0;
     const orderItemsToCreate: { productId: string; quantity: number; price: number }[] = [];
     const emailItems: OrderItemForEmail[] = [];
 
@@ -75,7 +81,7 @@ export async function POST(request: NextRequest) {
         price = price * (1 - product.discount / 100);
       }
 
-      total += price * item.quantity;
+      itemsTotal += price * item.quantity;
 
       orderItemsToCreate.push({
         productId: product.id,
@@ -90,7 +96,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 4. Create order and deduct stock in a single transaction
+    // 5. Calculate delivery charge and grand total
+    const deliveryCharge = DELIVERY_CHARGES[deliveryOption] ?? 0;
+    const total = itemsTotal + deliveryCharge;
+
+    // 6. Create order and deduct stock in a single transaction
     const order = await prisma.$transaction(async (tx) => {
       // Deduct quantities
       for (const item of cartItems) {
@@ -112,11 +122,13 @@ export async function POST(request: NextRequest) {
           customerPhone,
           shippingAddress,
           total,
-          paymentMethod,
-          paymentStatus: paymentMethod === "ONLINE" ? "COMPLETED" : "PENDING",
-          status: paymentMethod === "ONLINE" ? "CONFIRMED" : "PENDING",
-          razorpayOrderId: paymentMethod === "ONLINE" ? razorpayOrderId : null,
-          razorpayPaymentId: paymentMethod === "ONLINE" ? razorpayPaymentId : null,
+          paymentMethod: "ONLINE",
+          paymentStatus: "COMPLETED",
+          status: "CONFIRMED",
+          deliveryOption,
+          deliveryCharge,
+          razorpayOrderId,
+          razorpayPaymentId,
           orderItems: {
             create: orderItemsToCreate
           }
@@ -124,11 +136,11 @@ export async function POST(request: NextRequest) {
       });
     });
 
-    // 5. Send Resend transactional emails asynchronously
+    // 7. Send Resend transactional emails asynchronously
     const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || "admin@welcona.com";
     
     // Email to customer
-    sendPaymentSuccessEmail(customerEmail, order.id, total, emailItems, paymentMethod)
+    sendPaymentSuccessEmail(customerEmail, order.id, itemsTotal, deliveryCharge, deliveryOption, emailItems)
       .catch(err => console.error("Error sending customer email:", err));
 
     // Email to admin
@@ -139,9 +151,10 @@ export async function POST(request: NextRequest) {
       customerPhone, 
       shippingAddress, 
       order.id, 
-      total, 
-      emailItems, 
-      paymentMethod
+      itemsTotal,
+      deliveryCharge,
+      deliveryOption,
+      emailItems
     ).catch(err => console.error("Error sending admin notification:", err));
 
     return NextResponse.json({

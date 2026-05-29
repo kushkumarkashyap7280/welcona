@@ -63,6 +63,8 @@ type Order = {
   status: string;
   paymentStatus: string;
   paymentMethod: string;
+  deliveryOption: string;
+  deliveryCharge: number;
   shippingAddress: any;
   razorpayOrderId: string | null;
   razorpayPaymentId: string | null;
@@ -321,6 +323,7 @@ export function OrdersClient() {
               <TableHead>Customer</TableHead>
               <TableHead>Items</TableHead>
               <TableHead>Total</TableHead>
+              <TableHead>Delivery</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Payment</TableHead>
               <TableHead>Date</TableHead>
@@ -330,19 +333,19 @@ export function OrdersClient() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={9} className="h-24 text-center">
                   Loading orders...
                 </TableCell>
               </TableRow>
             ) : isError ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-destructive">
+                <TableCell colSpan={9} className="h-24 text-center text-destructive">
                   Failed to load orders
                 </TableCell>
               </TableRow>
             ) : orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                   No orders found
                 </TableCell>
               </TableRow>
@@ -406,6 +409,14 @@ export function OrdersClient() {
                     </TableCell>
                     <TableCell className="font-medium">
                       {formatPrice(order.total)}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs font-medium">
+                        {(order.deliveryOption || "").replace(/_/g, " ")}
+                      </span>
+                      {order.deliveryCharge > 0 && (
+                        <span className="block text-[10px] text-muted-foreground">₹{order.deliveryCharge}</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge className={`rounded-full text-[10px] ${getStatusColor(order.status)}`}>
