@@ -32,7 +32,7 @@ const STATS_CONFIG = {
     { value: 500, suffix: "+", label: "Products" },
     { value: 10, suffix: "+", label: "Categories" },
     { value: 5000, suffix: "+", label: "Happy Customers" },
-    { value: 2, suffix: " Yr", label: "Warranty" },
+    { value: 10, suffix: " Yr", label: "Warranty" },
   ],
 };
 

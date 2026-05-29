@@ -226,3 +226,75 @@ export async function sendAdminOrderNotificationEmail(
     return { success: false, error: "Failed to send email." };
   }
 }
+
+// ─── ADMIN HEALTH CHECK EMAIL ────────────────────────────────────────────────
+export async function sendAdminHealthCheckEmail(
+  adminEmail: string,
+  productCount: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const formattedDate = new Intl.DateTimeFormat("en-IN", {
+      dateStyle: "full",
+      timeStyle: "short",
+      timeZone: "Asia/Kolkata",
+    }).format(new Date());
+
+    const { error } = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || "Welcona Status <noreply@welcona.com>",
+      to: adminEmail,
+      subject: `[Healthy] Welcona System Status Report`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 24px; background: #f4fbf7; border-radius: 16px; border: 1px solid #d1fae5;">
+          <div style="text-align: center; margin-bottom: 32px;">
+            <div style="display: inline-block; background: #d1fae5; border-radius: 50%; padding: 16px; margin-bottom: 16px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: 0 auto;">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            <h1 style="font-size: 24px; font-weight: 700; color: #065f46; margin: 0;">Welcona System Status</h1>
+            <p style="font-size: 13px; color: #047857; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 4px; font-weight: 600;">Automated Health Report</p>
+          </div>
+          
+          <div style="background: #ffffff; border: 1px solid #e6f4ea; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+            <div style="display: flex; align-items: center; justify-content: center; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 24px; text-align: center;">
+              <span style="display: inline-block; width: 10px; height: 10px; background-color: #10b981; border-radius: 50%; margin-right: 8px;"></span>
+              <span style="font-size: 15px; font-weight: 700; color: #065f46; letter-spacing: 0.05em;">SITE IS HEALTHY</span>
+            </div>
+
+            <p style="font-size: 15px; color: #374151; line-height: 1.6; margin: 0 0 20px; text-align: center;">
+              Hello Admin,<br/>
+              We are pleased to report that the site is fully functional, database connectivity is active, and all systems are healthy.
+            </p>
+
+            <div style="border-top: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6; padding: 20px 0; margin-bottom: 20px;">
+              <div style="text-align: center;">
+                <span style="font-size: 13px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 6px;">Total Active Products</span>
+                <span style="font-size: 36px; font-weight: 800; color: #10b981; display: block; line-height: 1;">${productCount}</span>
+              </div>
+            </div>
+
+            <div style="font-size: 13px; color: #6b7280; text-align: center; line-height: 1.5;">
+              <strong>Report Timestamp:</strong> ${formattedDate}<br/>
+              <strong>Status:</strong> All Systems Operational
+            </div>
+          </div>
+          
+          <p style="text-align: center; font-size: 12px; color: #9ca3af; margin-top: 24px; margin-bottom: 0;">
+            &copy; ${new Date().getFullYear()} Welcona. All rights reserved.
+          </p>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error("Resend health check email error:", error);
+      return { success: false, error: "Failed to send email." };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Health check email exception:", err);
+    return { success: false, error: "Failed to send email." };
+  }
+}

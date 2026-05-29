@@ -1,3 +1,15 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "30 6 * * *"
+    }
+  ]
+}
+
+
+
+
 When using Razorpay in Test Mode (rzp_test_...), the popup appears correctly, but you must complete the payment simulation manually. Here is how:
 
 In the Razorpay modal, select UPI or Card.
