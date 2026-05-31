@@ -9,7 +9,7 @@ import {
   Loader2, Trash2, ShoppingBag, CreditCard,
   CheckCircle, Mail, Phone, MapPin, User,
   Minus, Plus, X, Store, Truck, MapPinned,
-  FileText, ExternalLink,
+  FileText, ExternalLink, AlertTriangle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,14 @@ interface CartItem {
   wholesaleMinQuantity: number | null;
   image: string;
   quantity: number;
+  availableStock?: number; // live stock from DB
+}
+
+interface StockIssue {
+  productId: string;
+  name: string;
+  requested: number;
+  available: number;
 }
 
 type DeliveryOption = "CUSTOMER_PICKUP" | "DELHI" | "OUTSIDE_DELHI";
@@ -44,6 +52,8 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  const [stockIssues, setStockIssues] = useState<StockIssue[]>([]);
+  const [validatingStock, setValidatingStock] = useState(false);
 
   // Form
   const [name, setName] = useState("");
@@ -73,20 +83,39 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
 
       if (res.ok) {
         const { products } = await res.json();
-        const updatedItems = localItems.map(localItem => {
+        const issues: StockIssue[] = [];
+        const updatedItems: CartItem[] = [];
+
+        for (const localItem of localItems) {
           const fresh = products.find((p: any) => p.id === localItem.productId);
-          if (fresh) {
-            return {
-              ...localItem, name: fresh.name, sku: fresh.sku,
-              retailPrice: fresh.retailPrice, discount: fresh.discount,
-              wholesalePrice: fresh.wholesalePrice, wholesaleMinQuantity: fresh.wholesaleMinQuantity,
-              quantity: Math.min(localItem.quantity, fresh.quantity > 0 ? fresh.quantity : 1),
-            };
+          if (!fresh) {
+            // Product deleted from DB — auto-remove
+            toast.error(`"${localItem.name}" is no longer available and was removed from your cart.`);
+            continue;
           }
-          return localItem;
-        });
+          if (fresh.quantity === 0) {
+            // Out of stock — auto-remove
+            toast.error(`"${fresh.name}" is out of stock and was removed from your cart.`);
+            continue;
+          }
+          const cappedQty = Math.min(localItem.quantity, fresh.quantity);
+          if (localItem.quantity > fresh.quantity) {
+            issues.push({ productId: fresh.id, name: fresh.name, requested: localItem.quantity, available: fresh.quantity });
+          }
+          updatedItems.push({
+            ...localItem, name: fresh.name, sku: fresh.sku,
+            retailPrice: fresh.retailPrice, discount: fresh.discount,
+            wholesalePrice: fresh.wholesalePrice, wholesaleMinQuantity: fresh.wholesaleMinQuantity,
+            quantity: cappedQty, availableStock: fresh.quantity,
+          });
+        }
+
         setCart(updatedItems);
+        setStockIssues(issues);
         localStorage.setItem("welcona_cart", JSON.stringify(updatedItems));
+        if (updatedItems.length < localItems.length) {
+          window.dispatchEvent(new Event("cart-updated"));
+        }
       } else {
         setCart(localItems);
       }
@@ -95,6 +124,51 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
       if (data) setCart(JSON.parse(data));
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  // Validate stock for all cart items — used before checkout transitions
+  const validateStock = useCallback(async (currentCart: CartItem[]): Promise<{ valid: boolean; issues: StockIssue[] }> => {
+    try {
+      setValidatingStock(true);
+      const res = await fetch("/api/products/validate-stock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cartItems: currentCart.map(i => ({ productId: i.productId, quantity: i.quantity, name: i.name })) }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { valid: false, issues: [] };
+
+      // Auto-remove items with 0 stock
+      const zeroStockIds = (data.stockIssues as StockIssue[]).filter(si => si.available === 0).map(si => si.productId);
+      if (zeroStockIds.length > 0) {
+        const cleaned = currentCart.filter(i => !zeroStockIds.includes(i.productId));
+        setCart(cleaned);
+        localStorage.setItem("welcona_cart", JSON.stringify(cleaned));
+        window.dispatchEvent(new Event("cart-updated"));
+        for (const si of data.stockIssues.filter((s: StockIssue) => s.available === 0)) {
+          toast.error(`"${si.name}" is out of stock and was removed.`);
+        }
+      }
+
+      // Cap quantities for items with partial stock
+      const partialIssues = (data.stockIssues as StockIssue[]).filter(si => si.available > 0);
+      if (partialIssues.length > 0) {
+        const updated = currentCart.filter(i => !zeroStockIds.includes(i.productId)).map(i => {
+          const issue = partialIssues.find(si => si.productId === i.productId);
+          if (issue) return { ...i, quantity: issue.available, availableStock: issue.available };
+          return i;
+        });
+        setCart(updated);
+        localStorage.setItem("welcona_cart", JSON.stringify(updated));
+      }
+
+      setStockIssues(data.stockIssues || []);
+      return { valid: data.valid, issues: data.stockIssues || [] };
+    } catch {
+      return { valid: false, issues: [] };
+    } finally {
+      setValidatingStock(false);
     }
   }, []);
 
@@ -110,10 +184,17 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
   }, [open]);
 
   const updateQuantity = (productId: string, delta: number) => {
-    const updated = cart.map(item =>
-      item.productId === productId ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
-    );
+    const updated = cart.map(item => {
+      if (item.productId !== productId) return item;
+      const maxQty = item.availableStock ?? Infinity;
+      const newQty = Math.max(1, Math.min(maxQty, item.quantity + delta));
+      if (newQty === item.quantity && delta > 0) {
+        toast.warning(`Only ${maxQty} units available for "${item.name}"`);
+      }
+      return { ...item, quantity: newQty };
+    });
     setCart(updated);
+    setStockIssues(prev => prev.filter(si => si.productId !== productId)); // Clear resolved issues
     localStorage.setItem("welcona_cart", JSON.stringify(updated));
     window.dispatchEvent(new Event("cart-updated"));
   };
@@ -157,6 +238,17 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
         setSubmitting(false); return;
       }
 
+      // Re-validate stock one final time before payment
+      const stockCheck = await validateStock(cart);
+      if (!stockCheck.valid) {
+        const issueNames = stockCheck.issues.map(si =>
+          si.available === 0 ? `"${si.name}" (out of stock)` : `"${si.name}" (only ${si.available} available)`
+        ).join(", ");
+        toast.error(`Stock issue: ${issueNames}. Cart has been updated.`);
+        setSubmitting(false);
+        return;
+      }
+
       const rzpRes = await fetch("/api/checkout/razorpay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -166,7 +258,19 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
         }),
       });
       const rzpData = await rzpRes.json();
-      if (!rzpRes.ok) throw new Error(rzpData.error || "Failed to create payment session.");
+      if (!rzpRes.ok) {
+        // Handle stock issues from backend
+        if (rzpData.stockIssues) {
+          setStockIssues(rzpData.stockIssues);
+          const names = rzpData.stockIssues.map((si: StockIssue) =>
+            si.available === 0 ? `"${si.name}" (out of stock)` : `"${si.name}" (only ${si.available} available)`
+          ).join(", ");
+          toast.error(`Cannot proceed: ${names}`);
+          setSubmitting(false);
+          return;
+        }
+        throw new Error(rzpData.error || "Failed to create payment session.");
+      }
 
       const options = {
         key: rzpData.keyId,
@@ -340,6 +444,25 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
             </div>
           )}
 
+          {/* ── STOCK ISSUES WARNING ── */}
+          {step === "cart" && !loading && stockIssues.length > 0 && (
+            <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30 p-3 space-y-1.5">
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span className="text-sm font-semibold">Stock Issues</span>
+              </div>
+              <ul className="text-xs text-amber-800 dark:text-amber-300 space-y-1 pl-6 list-disc">
+                {stockIssues.map(si => (
+                  <li key={si.productId}>
+                    <strong>{si.name}</strong>: requested {si.requested}, only <strong>{si.available}</strong> available
+                    {si.available === 0 && " (removed)"}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[11px] text-amber-600 dark:text-amber-500">Quantities have been adjusted. Please review your cart.</p>
+            </div>
+          )}
+
           {/* ── CHECKOUT FORM (step: checkout) ── */}
           {step === "checkout" && !loading && cart.length > 0 && (
             <form onSubmit={handleCheckout} className="space-y-4">
@@ -431,8 +554,23 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
               <span className="text-muted-foreground">Subtotal ({cart.length} items)</span>
               <span className="font-bold">{formatPrice(subtotal)}</span>
             </div>
-            <Button className="w-full rounded-full font-semibold" size="lg" onClick={() => setStep("checkout")}>
-              Proceed to Checkout
+            <Button
+              className="w-full rounded-full font-semibold"
+              size="lg"
+              disabled={validatingStock || stockIssues.length > 0}
+              onClick={async () => {
+                const result = await validateStock(cart);
+                if (result.valid) {
+                  setStep("checkout");
+                } else {
+                  const issueNames = result.issues.map(si =>
+                    si.available === 0 ? `"${si.name}" (out of stock)` : `"${si.name}" (only ${si.available} available)`
+                  ).join(", ");
+                  toast.error(`Stock issue: ${issueNames}. Cart has been updated.`);
+                }
+              }}
+            >
+              {validatingStock ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Checking stock...</>) : "Proceed to Checkout"}
             </Button>
           </div>
         )}

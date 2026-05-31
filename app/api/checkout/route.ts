@@ -52,57 +52,79 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Payment verification failed." }, { status: 400 });
     }
 
-    // 4. Retrieve database products and calculate totals securely
-    let itemsTotal = 0;
-    const orderItemsToCreate: { productId: string; quantity: number; price: number }[] = [];
-    const emailItems: OrderItemForEmail[] = [];
+    // 4. ATOMIC: Validate stock, calculate totals, deduct stock, and create order — all inside a single transaction
+    //    This uses raw SQL SELECT ... FOR UPDATE to lock the product rows, preventing race conditions
+    //    where two concurrent orders could both see sufficient stock and double-sell.
+    const result = await prisma.$transaction(async (tx) => {
+      const stockIssues: { name: string; requested: number; available: number }[] = [];
+      let itemsTotal = 0;
+      const orderItemsToCreate: { productId: string; quantity: number; price: number }[] = [];
+      const emailItems: OrderItemForEmail[] = [];
 
-    for (const item of cartItems) {
-      const product = await prisma.product.findUnique({
-        where: { id: item.productId }
-      });
+      // Lock and validate each product row atomically
+      for (const item of cartItems) {
+        // Use raw SQL with FOR UPDATE to acquire row-level lock
+        const lockedProducts = await tx.$queryRaw<
+          { id: string; name: string; quantity: number; "retailPrice": number; discount: number | null; "wholesalePrice": number | null; "wholesaleMinQuantity": number | null }[]
+        >`
+          SELECT id, name, quantity, "retailPrice", discount, "wholesalePrice", "wholesaleMinQuantity"
+          FROM "Product"
+          WHERE id = ${item.productId}
+          FOR UPDATE
+        `;
 
-      if (!product) {
-        return NextResponse.json({ error: `Product with ID ${item.productId} not found.` }, { status: 400 });
+        if (lockedProducts.length === 0) {
+          throw new Error(`Product with ID ${item.productId} not found.`);
+        }
+
+        const product = lockedProducts[0];
+
+        // Check stock with lock held — no other transaction can modify this row
+        if (product.quantity < item.quantity) {
+          stockIssues.push({
+            name: product.name,
+            requested: item.quantity,
+            available: product.quantity,
+          });
+          continue;
+        }
+
+        let price = product.retailPrice;
+        if (
+          product.wholesalePrice !== null &&
+          product.wholesaleMinQuantity !== null &&
+          item.quantity >= product.wholesaleMinQuantity
+        ) {
+          price = product.wholesalePrice;
+        } else if (product.discount) {
+          price = price * (1 - product.discount / 100);
+        }
+
+        itemsTotal += price * item.quantity;
+
+        orderItemsToCreate.push({
+          productId: product.id,
+          quantity: item.quantity,
+          price: price
+        });
+
+        emailItems.push({
+          name: product.name,
+          quantity: item.quantity,
+          price: price
+        });
       }
 
-      if (product.quantity < item.quantity) {
-        return NextResponse.json({ error: `Insufficient inventory for product: ${product.name}.` }, { status: 400 });
+      // If any stock issues exist, abort the entire transaction
+      if (stockIssues.length > 0) {
+        throw { stockIssues, message: "Stock unavailable" };
       }
 
-      let price = product.retailPrice;
-      if (
-        product.wholesalePrice !== null &&
-        product.wholesaleMinQuantity !== null &&
-        item.quantity >= product.wholesaleMinQuantity
-      ) {
-        price = product.wholesalePrice;
-      } else if (product.discount) {
-        price = price * (1 - product.discount / 100);
-      }
+      // Calculate delivery charge and grand total
+      const deliveryCharge = DELIVERY_CHARGES[deliveryOption] ?? 0;
+      const total = itemsTotal + deliveryCharge;
 
-      itemsTotal += price * item.quantity;
-
-      orderItemsToCreate.push({
-        productId: product.id,
-        quantity: item.quantity,
-        price: price
-      });
-
-      emailItems.push({
-        name: product.name,
-        quantity: item.quantity,
-        price: price
-      });
-    }
-
-    // 5. Calculate delivery charge and grand total
-    const deliveryCharge = DELIVERY_CHARGES[deliveryOption] ?? 0;
-    const total = itemsTotal + deliveryCharge;
-
-    // 6. Create order and deduct stock in a single transaction
-    const order = await prisma.$transaction(async (tx) => {
-      // Deduct quantities
+      // Deduct quantities (lock is still held from SELECT FOR UPDATE)
       for (const item of cartItems) {
         await tx.product.update({
           where: { id: item.productId },
@@ -115,7 +137,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Create Order
-      return tx.order.create({
+      const order = await tx.order.create({
         data: {
           customerName,
           customerEmail,
@@ -134,13 +156,15 @@ export async function POST(request: NextRequest) {
           }
         }
       });
+
+      return { order, emailItems, itemsTotal, deliveryCharge };
     });
 
-    // 7. Send Resend transactional emails asynchronously
+    // 5. Send Resend transactional emails asynchronously (outside the transaction)
     const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || "admin@welcona.com";
     
     // Email to customer
-    sendPaymentSuccessEmail(customerEmail, order.id, itemsTotal, deliveryCharge, deliveryOption, emailItems)
+    sendPaymentSuccessEmail(customerEmail, result.order.id, result.itemsTotal, result.deliveryCharge, deliveryOption, result.emailItems)
       .catch(err => console.error("Error sending customer email:", err));
 
     // Email to admin
@@ -150,19 +174,27 @@ export async function POST(request: NextRequest) {
       customerEmail, 
       customerPhone, 
       shippingAddress, 
-      order.id, 
-      itemsTotal,
-      deliveryCharge,
+      result.order.id, 
+      result.itemsTotal,
+      result.deliveryCharge,
       deliveryOption,
-      emailItems
+      result.emailItems
     ).catch(err => console.error("Error sending admin notification:", err));
 
     return NextResponse.json({
       success: true,
-      order
+      order: result.order
     });
 
-  } catch (error) {
+  } catch (error: any) {
+    // Handle stock issues thrown from within the transaction
+    if (error?.stockIssues) {
+      return NextResponse.json({
+        error: "Some products are no longer available in the requested quantity. Your payment was received but the order could not be completed. Please contact support.",
+        stockIssues: error.stockIssues,
+      }, { status: 409 });
+    }
+
     console.error("Checkout order processing error:", error);
     return NextResponse.json({ error: "Failed to process order." }, { status: 500 });
   }

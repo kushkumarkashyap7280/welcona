@@ -17,6 +17,11 @@ const adminData: Prisma.AdminCreateInput[] = [
     password: "1234", // Will be replaced by hashed password
     fullName: "Welcona Admin",
   },
+  {
+    email: "deekpakjain.admin@welcona.com",
+    password: "7gvgvKkrVDHldtQi1UQ3dVEgfW5fSdzmg/nbqbOWcDs=",
+    fullName: "Welcona Admin",
+  }
 ];
 
 const categories = [
