@@ -33,24 +33,25 @@ export default function TermsPage() {
             Delivery &amp; Pickup Policy
           </h2>
           <p className="mt-2">
-            We do not have delivery partners. Customers can choose one of the following options at checkout:
+            Welcona does not operate an in-house delivery service or charge shipping fees. All delivery arrangements must be discussed and understood BEFORE placing your order. We offer two collection options:
           </p>
-          <ul className="mt-3 space-y-2 ml-1">
+          <ul className="mt-3 space-y-3.5 ml-1">
             <li className="flex items-start gap-2">
-              <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-              <span><strong className="text-foreground">Customer Pickup:</strong> Come to our shop to collect the product within 7 working days (Mon–Sat, 9 AM – 7 PM). Products not picked up within 7 days will be returned and the money will <strong className="text-foreground">not be refunded</strong>.</span>
+              <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+              <span>
+                <strong className="text-foreground">Customer Warehouse Pickup:</strong> You can choose to collect your items directly from our premises within 7 working days (Mon–Sat, 9 AM – 7 PM). Items not collected within 7 days will be returned to inventory and payments are <strong className="text-foreground">not refundable</strong>.
+              </span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-              <span><strong className="text-foreground">Delhi Delivery:</strong> ₹150 delivery charge. Product will be delivered within 1–5 business days (excluding the day of order).</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-              <span><strong className="text-foreground">Outside Delhi Delivery:</strong> ₹250 delivery charge. Product will be delivered within 3–5 business days (excluding the day of order).</span>
+              <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+              <span>
+                <strong className="text-foreground">Third-Party Courier (Porter / Dunzo / Courier):</strong> We can assist you by booking a delivery service (e.g., Porter) on your behalf, or you can book one yourself. 
+                All shipping charges are paid <strong className="text-foreground">cash-on-delivery directly to the courier boy/driver</strong>. Welcona does not calculate, collect, or assume liability for third-party shipping charges or delays.
+              </span>
             </li>
           </ul>
-          <p className="mt-3 text-xs text-amber-600 dark:text-amber-400 font-medium">
-            Please contact us before purchase if you have questions about delivery.
+          <p className="mt-3.5 text-xs text-amber-600 dark:text-amber-400 font-bold bg-amber-500/5 p-3 rounded-lg border border-amber-200 dark:border-amber-900/40">
+            ⚠️ REQUIRED: A dedicated checkbox is enforced at checkout confirming you have initiated contact with us on WhatsApp (9625711655) and have clear alignment regarding your pickup/shipping method prior to completing payment.
           </p>
         </div>
 

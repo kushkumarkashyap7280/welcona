@@ -8,8 +8,8 @@ import { toast } from "sonner";
 import {
   Loader2, Trash2, ShoppingBag, CreditCard,
   CheckCircle, Mail, Phone, MapPin, User,
-  Minus, Plus, X, Store, Truck, MapPinned,
-  FileText, ExternalLink, AlertTriangle,
+  Minus, Plus, X, Store, Truck,
+  FileText, ExternalLink, AlertTriangle, MessageCircle, Trophy,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -38,12 +38,14 @@ interface StockIssue {
   available: number;
 }
 
-type DeliveryOption = "CUSTOMER_PICKUP" | "DELHI" | "OUTSIDE_DELHI";
+type DeliveryOption = "CUSTOMER_PICKUP" | "HOME_DELIVERY";
 
-const DELIVERY_OPTIONS: { value: DeliveryOption; label: string; desc: string; charge: number; icon: typeof Store }[] = [
-  { value: "CUSTOMER_PICKUP", label: "Customer Pickup", desc: "Pick up from our shop within 7 working days (Mon–Sat, 9 AM – 7 PM). Otherwise product returned, money not refunded.", charge: 0, icon: Store },
-  { value: "DELHI", label: "Delhi Delivery", desc: "Delivered within 1–5 business days.", charge: 150, icon: Truck },
-  { value: "OUTSIDE_DELHI", label: "Outside Delhi", desc: "Delivered within 3–5 business days.", charge: 250, icon: MapPinned },
+const WHATSAPP_NUMBER = "919625711655";
+const BULK_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BULK_THRESHOLD || "10000");
+
+const DELIVERY_OPTIONS: { value: DeliveryOption; label: string; desc: string; icon: typeof Store; contactRequired?: boolean }[] = [
+  { value: "CUSTOMER_PICKUP", label: "Customer Pickup", desc: "Pick up from our shop within 7 working days (Mon–Sat, 9 AM – 7 PM). Otherwise product returned, money not refunded.", icon: Store },
+  { value: "HOME_DELIVERY", label: "Home Delivery", desc: "We arrange delivery via third-party courier. You pay the delivery person directly.", icon: Truck, contactRequired: true },
 ];
 
 export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -62,6 +64,7 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
   const [address, setAddress] = useState("");
   const [deliveryOption, setDeliveryOption] = useState<DeliveryOption>("CUSTOMER_PICKUP");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [deliveryConfirmed, setDeliveryConfirmed] = useState(false);
 
   // Checkout step: "cart" | "checkout" | "confirmed"
   const [step, setStep] = useState<"cart" | "checkout" | "confirmed">("cart");
@@ -215,11 +218,39 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
   };
 
   const subtotal = cart.reduce((sum, item) => sum + calculateItemPrice(item) * item.quantity, 0);
-  const deliveryCharge = DELIVERY_OPTIONS.find(d => d.value === deliveryOption)?.charge ?? 0;
-  const grandTotal = subtotal + deliveryCharge;
+  const grandTotal = subtotal; // Delivery charge is not handled in our system (customer pays directly)
+  const isBulkOrder = subtotal >= BULK_THRESHOLD;
 
   const formatPrice = (amount: number) =>
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(amount);
+
+  const saveOrderToLocalStorage = (order: any, isBulk: boolean) => {
+    try {
+      // 1. Save to array
+      const existingOrders = JSON.parse(localStorage.getItem("welcona_orders") || "[]");
+      const orderEntry = {
+        orderId: order.id,
+        total: order.total,
+        createdAt: new Date().toISOString(),
+        isBulk,
+        deliveryOption,
+      };
+      
+      // Prevent duplicates
+      if (!existingOrders.some((o: any) => o.orderId === order.id)) {
+        existingOrders.unshift(orderEntry);
+        localStorage.setItem("welcona_orders", JSON.stringify(existingOrders));
+      }
+
+      // 2. Save last order for quick confirmation screen details
+      localStorage.setItem("welcona_last_order", JSON.stringify({
+        ...orderEntry,
+        customerName: name,
+      }));
+    } catch (err) {
+      console.error("Error saving order to localStorage:", err);
+    }
+  };
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,15 +261,13 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
     if (!agreedToTerms) {
       toast.error("Please agree to the Terms & Conditions."); return;
     }
+    if (!deliveryConfirmed) {
+      toast.error("Please confirm you have discussed delivery arrangements on WhatsApp."); return;
+    }
 
     setSubmitting(true);
     try {
-      if (!(window as any).Razorpay) {
-        toast.error("Razorpay SDK is loading. Please try again in a moment.");
-        setSubmitting(false); return;
-      }
-
-      // Re-validate stock one final time before payment
+      // Re-validate stock one final time before payment/order creation
       const stockCheck = await validateStock(cart);
       if (!stockCheck.valid) {
         const issueNames = stockCheck.issues.map(si =>
@@ -247,6 +276,44 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
         toast.error(`Stock issue: ${issueNames}. Cart has been updated.`);
         setSubmitting(false);
         return;
+      }
+
+      // ─── BULK ORDER FLOW (Skip Razorpay entirely) ───
+      if (isBulkOrder) {
+        const response = await fetch("/api/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customerName: name,
+            customerEmail: email,
+            customerPhone: phone,
+            shippingAddress: address,
+            deliveryOption,
+            isBulk: true,
+            cartItems: cart.map(item => ({ productId: item.productId, quantity: item.quantity })),
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to submit bulk order.");
+
+        // Save order ID to localStorage for guests
+        saveOrderToLocalStorage(data.order, true);
+
+        // Clear cart
+        localStorage.removeItem("welcona_cart");
+        window.dispatchEvent(new Event("cart-updated"));
+        setConfirmedOrder({ ...data.order, isBulk: true });
+        setStep("confirmed");
+        toast.success("🏆 Bulk order placed successfully!");
+        setSubmitting(false);
+        return;
+      }
+
+      // ─── REGULAR ORDER FLOW (Razorpay) ───
+      if (!(window as any).Razorpay) {
+        toast.error("Razorpay SDK is loading. Please try again in a moment.");
+        setSubmitting(false); return;
       }
 
       const rzpRes = await fetch("/api/checkout/razorpay", {
@@ -259,7 +326,6 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
       });
       const rzpData = await rzpRes.json();
       if (!rzpRes.ok) {
-        // Handle stock issues from backend
         if (rzpData.stockIssues) {
           setStockIssues(rzpData.stockIssues);
           const names = rzpData.stockIssues.map((si: StockIssue) =>
@@ -297,9 +363,12 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
             const completeData = await completeRes.json();
             if (!completeRes.ok) throw new Error(completeData.error || "Failed to save payment.");
 
+            // Save order ID to localStorage for guests
+            saveOrderToLocalStorage(completeData.order, false);
+
             localStorage.removeItem("welcona_cart");
             window.dispatchEvent(new Event("cart-updated"));
-            setConfirmedOrder(completeData.order);
+            setConfirmedOrder({ ...completeData.order, isBulk: false });
             setStep("confirmed");
             toast.success("Payment verified and order created!");
           } catch (err: any) {
@@ -309,7 +378,7 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
           }
         },
         prefill: { name, email, contact: phone },
-        theme: { color: "#0f172a" },
+        theme: { color: "#b8960c" },
         modal: {
           ondismiss: function () {
             setSubmitting(false);
@@ -321,8 +390,7 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
       paymentObject.open();
     } catch (error: any) {
       toast.error(error.message || "Checkout processing error.");
-    } finally {
-      // submitting stays true until Razorpay handler resolves
+      setSubmitting(false);
     }
   };
 
@@ -351,21 +419,74 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {/* ── CONFIRMED VIEW ── */}
           {step === "confirmed" && confirmedOrder && (
-            <div className="text-center space-y-5 py-6">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40">
-                <CheckCircle className="h-10 w-10" />
+            <div className="text-center space-y-6 py-6 animate-in fade-in zoom-in duration-300">
+              {confirmedOrder.isBulk ? (
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950/40 border border-amber-300 animate-bounce">
+                  <Trophy className="h-10 w-10 text-amber-600" />
+                </div>
+              ) : (
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40">
+                  <CheckCircle className="h-10 w-10" />
+                </div>
+              )}
+
+              <div>
+                <h3 className="text-xl font-bold tracking-tight">
+                  {confirmedOrder.isBulk ? "🏆 Bulk Order Received!" : "Order Submitted Successfully!"}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                  {confirmedOrder.isBulk 
+                    ? "Your wholesale items are reserved. Next step is manual payment verification via WhatsApp."
+                    : "Your order details have been saved."}
+                </p>
               </div>
-              <h3 className="text-xl font-bold">Order Confirmed!</h3>
-              <p className="text-sm text-muted-foreground">Thank you for shopping with Welcona.</p>
-              <div className="rounded-xl bg-muted/50 p-4 text-left space-y-2 text-xs">
-                <div className="flex justify-between"><span className="text-muted-foreground">Order ID</span><span className="font-mono font-medium">{confirmedOrder.id?.slice(0, 8)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Name</span><span className="font-medium">{confirmedOrder.customerName}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Total Paid</span><span className="font-bold">{formatPrice(confirmedOrder.total)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Delivery</span><span className="font-medium">{confirmedOrder.deliveryOption?.replace(/_/g, " ")}</span></div>
+
+              <div className="rounded-xl bg-muted/60 p-5 text-left space-y-3 text-xs border border-border/40">
+                <div className="flex justify-between items-center border-b border-border/40 pb-2">
+                  <span className="text-muted-foreground font-medium">Order ID</span>
+                  <span className="font-mono font-bold text-sm bg-background px-2.5 py-1 rounded-md border text-primary">
+                    #{confirmedOrder.id?.split("-")[0].toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Customer Name</span><span className="font-semibold text-foreground">{confirmedOrder.customerName}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Order Total</span><span className="font-bold text-amber-700 dark:text-amber-500">{formatPrice(confirmedOrder.total)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Payment Method</span><span className="font-semibold">{confirmedOrder.isBulk ? "WhatsApp (Pending)" : "Paid Online"}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Delivery</span><span className="font-semibold text-emerald-600">{confirmedOrder.deliveryOption === "CUSTOMER_PICKUP" ? "Customer Pickup" : "Home Delivery (Arranged separately)"}</span></div>
               </div>
+
+              <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 rounded-xl p-4 space-y-2">
+                <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-400">
+                  {confirmedOrder.isBulk 
+                    ? "👉 Action Required: Pay & Confirm on WhatsApp" 
+                    : "👉 Action Required: Contact us to coordinate delivery"}
+                </p>
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-500 leading-normal">
+                  {confirmedOrder.isBulk
+                    ? "Please click below to connect with our support team to verify your invoice and receive offline payment details."
+                    : "Please send us a message to specify whether you will pick up the items or if we should book a Porter/courier."}
+                </p>
+                <a
+                  href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+                    confirmedOrder.isBulk
+                      ? `Hi, my order no is #${confirmedOrder.id?.split("-")[0].toUpperCase()}. I placed a bulk order on Welcona. Please help me complete the payment.`
+                      : `Hi, my order no is #${confirmedOrder.id?.split("-")[0].toUpperCase()}. I want to discuss the delivery setup for my order.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 flex items-center justify-center gap-2 w-full bg-[#25D366] hover:bg-[#20ba56] text-white py-2.5 px-4 rounded-xl text-xs font-bold transition-all shadow-md"
+                >
+                  <MessageCircle className="h-4.5 w-4.5 fill-current" />
+                  {confirmedOrder.isBulk ? "Pay & Confirm on WhatsApp" : "Coordinate Delivery on WhatsApp"}
+                </a>
+              </div>
+
+              <div className="text-[11px] text-muted-foreground text-center bg-muted/30 py-2 rounded-lg px-2">
+                ℹ️ We save this info in your browser only, so do not delete site data.
+              </div>
+
               <div className="flex flex-col gap-2 pt-2">
-                <Button className="w-full rounded-full" onClick={() => { onClose(); router.push("/products"); }}>Continue Shopping</Button>
-                <Button variant="outline" className="w-full rounded-full" onClick={onClose}>Close</Button>
+                <Button className="w-full rounded-full font-semibold" onClick={() => { onClose(); router.push("/products"); }}>Continue Shopping</Button>
+                <Button variant="outline" className="w-full rounded-full font-medium" onClick={onClose}>Close Drawer</Button>
               </div>
             </div>
           )}
@@ -471,26 +592,50 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                 <Label className="text-sm font-semibold">Delivery Option</Label>
                 {DELIVERY_OPTIONS.map(opt => {
                   const Icon = opt.icon;
+                  const isSelected = deliveryOption === opt.value;
                   return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setDeliveryOption(opt.value)}
-                      className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
-                        deliveryOption === opt.value
-                          ? "border-primary bg-primary/5 ring-1 ring-primary"
-                          : "border-border bg-transparent hover:bg-muted/50"
-                      }`}
-                    >
-                      <Icon className="h-5 w-5 mt-0.5 shrink-0 text-primary" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">{opt.label}</span>
-                          <span className="text-sm font-bold">{opt.charge > 0 ? formatPrice(opt.charge) : "FREE"}</span>
+                    <div key={opt.value} className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => setDeliveryOption(opt.value)}
+                        className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
+                          isSelected
+                            ? "border-primary bg-primary/5 ring-1 ring-primary"
+                            : "border-border bg-transparent hover:bg-muted/50"
+                        }`}
+                      >
+                        <Icon className="h-5 w-5 mt-0.5 shrink-0 text-primary" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">{opt.label}</span>
+                            <span className="text-xs font-bold text-primary">
+                              {opt.value === "CUSTOMER_PICKUP" ? "FREE" : "Arranged Separately"}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{opt.desc}</p>
                         </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{opt.desc}</p>
-                      </div>
-                    </button>
+                      </button>
+
+                      {isSelected && opt.contactRequired && (
+                        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl p-3 text-xs space-y-1.5 ml-8 animate-in slide-in-from-top-2 duration-200">
+                          <p className="text-amber-800 dark:text-amber-400 font-semibold flex items-center gap-1">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            Contact us on WhatsApp first
+                          </p>
+                          <p className="text-[10px] text-amber-700 dark:text-amber-500 leading-normal">
+                            Since we arrange courier directly and you pay them, please coordinate with us before checkout.
+                          </p>
+                          <a
+                            href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hi Welcona team, I want to discuss delivery for my order items.")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-900 dark:text-amber-400 underline underline-offset-2 hover:text-primary transition-colors"
+                          >
+                            💬 Coordinate arrangements on WhatsApp ↗
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -508,7 +653,7 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                 </div>
                 <div className="relative">
                   <Phone className="absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="cart-phone" type="tel" required placeholder="+91 98765 43210" value={phone} onChange={e => setPhone(e.target.value)} className="pl-9 rounded-xl" />
+                  <Input id="cart-phone" type="tel" required placeholder="Phone Number" value={phone} onChange={e => setPhone(e.target.value)} className="pl-9 rounded-xl" />
                 </div>
                 <div className="relative">
                   <MapPin className="absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
@@ -516,32 +661,88 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                 </div>
               </div>
 
-              {/* T&C Checkbox */}
-              <div className="flex items-start gap-2.5 pt-1">
-                <input
-                  type="checkbox"
-                  id="terms-agree"
-                  checked={agreedToTerms}
-                  onChange={e => setAgreedToTerms(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-border accent-primary"
-                />
-                <label htmlFor="terms-agree" className="text-xs text-muted-foreground leading-relaxed">
-                  I have read and agree to the{" "}
-                  <Link href="/terms" target="_blank" className="text-primary underline underline-offset-2 font-medium inline-flex items-center gap-0.5">
-                    Terms & Conditions <ExternalLink className="h-3 w-3" />
-                  </Link>
-                </label>
+              {/* Two Checkboxes */}
+              <div className="space-y-2.5 pt-1">
+                {/* 1. T&C */}
+                <div className="flex items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    id="terms-agree"
+                    checked={agreedToTerms}
+                    onChange={e => setAgreedToTerms(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                  />
+                  <label htmlFor="terms-agree" className="text-xs text-muted-foreground leading-relaxed cursor-pointer select-none">
+                    I agree to the{" "}
+                    <Link href="/terms" target="_blank" className="text-primary underline underline-offset-2 font-medium inline-flex items-center gap-0.5">
+                      Terms & Conditions <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </label>
+                </div>
+
+                {/* 2. WhatsApp Delivery Confirmed */}
+                <div className="flex items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    id="delivery-agree"
+                    checked={deliveryConfirmed}
+                    onChange={e => setDeliveryConfirmed(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                  />
+                  <label htmlFor="delivery-agree" className="text-xs text-muted-foreground leading-relaxed cursor-pointer select-none">
+                    I confirm that I have discussed and agreed to the <span className="font-semibold text-foreground">delivery arrangements</span> via WhatsApp.
+                  </label>
+                </div>
               </div>
 
               {/* Order Summary */}
               <div className="rounded-xl border border-border/60 bg-muted/30 p-4 space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Items ({cart.length})</span><span className="font-medium">{formatPrice(subtotal)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Delivery</span><span className="font-medium">{deliveryCharge > 0 ? formatPrice(deliveryCharge) : "FREE"}</span></div>
-                <div className="border-t pt-2 flex justify-between font-bold text-base"><span>Grand Total</span><span>{formatPrice(grandTotal)}</span></div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Items ({cart.length})</span>
+                  <span className="font-medium">{formatPrice(subtotal)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Delivery</span>
+                  <span className="font-medium text-xs">
+                    {deliveryOption === "CUSTOMER_PICKUP" ? "FREE" : "Arranged Separately (Pay Boy)"}
+                  </span>
+                </div>
+                <div className="border-t pt-2 flex justify-between font-bold text-base">
+                  <span>Grand Total</span>
+                  <span>{formatPrice(grandTotal)}</span>
+                </div>
               </div>
 
-              <Button type="submit" size="lg" disabled={submitting || !agreedToTerms} className="w-full rounded-full text-sm font-semibold">
-                {submitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</>) : (<><CreditCard className="mr-2 h-4 w-4" />Pay {formatPrice(grandTotal)} Online</>)}
+              {/* Gold badge if bulk order */}
+              {isBulkOrder && (
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800 rounded-xl p-4 text-xs space-y-2 text-left animate-in fade-in duration-300">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-900 dark:text-amber-400">
+                    <Trophy className="h-4 w-4 animate-bounce" />
+                    Wholesale Order Qualified!
+                  </div>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-500 leading-normal">
+                    This order qualifies for our priority Wholesale desk (totals ₹10,000+). We bypass Razorpay and process payment directly over WhatsApp.
+                  </p>
+                </div>
+              )}
+
+              <Button 
+                type="submit" 
+                size="lg" 
+                disabled={submitting || !agreedToTerms || !deliveryConfirmed} 
+                className={`w-full rounded-full text-sm font-semibold transition-all ${
+                  isBulkOrder 
+                    ? "bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700 border border-amber-500" 
+                    : ""
+                }`}
+              >
+                {submitting ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</>
+                ) : isBulkOrder ? (
+                  <><Trophy className="mr-2 h-4 w-4" />Complete Bulk Order via WhatsApp</>
+                ) : (
+                  <><CreditCard className="mr-2 h-4 w-4" />Pay {formatPrice(grandTotal)} Online</>
+                )}
               </Button>
             </form>
           )}
@@ -550,12 +751,19 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
         {/* Footer (cart step only) */}
         {step === "cart" && !loading && cart.length > 0 && (
           <div className="border-t border-border/60 px-5 py-4 space-y-3">
+            {isBulkOrder && (
+              <div className="bg-amber-50 dark:bg-amber-950/10 border border-amber-200 dark:border-amber-900/30 rounded-lg p-2 text-[10px] text-amber-800 dark:text-amber-400 font-medium text-center">
+                🏆 Congratulations! You qualify for Wholesale checkout benefits.
+              </div>
+            )}
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Subtotal ({cart.length} items)</span>
               <span className="font-bold">{formatPrice(subtotal)}</span>
             </div>
             <Button
-              className="w-full rounded-full font-semibold"
+              className={`w-full rounded-full font-semibold ${
+                isBulkOrder ? "bg-amber-600 hover:bg-amber-700 text-white" : ""
+              }`}
               size="lg"
               disabled={validatingStock || stockIssues.length > 0}
               onClick={async () => {

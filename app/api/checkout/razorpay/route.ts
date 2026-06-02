@@ -7,12 +7,8 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET!,
 });
 
-// Delivery charge map
-const DELIVERY_CHARGES: Record<string, number> = {
-  CUSTOMER_PICKUP: 0,
-  DELHI: 150,
-  OUTSIDE_DELHI: 250,
-};
+// Bulk order threshold in paise (default ₹10,000 = 1000000 paise)
+const BULK_THRESHOLD = parseInt(process.env.BULK_ORDER_THRESHOLD || "1000000");
 
 // POST /api/checkout/razorpay — Generate a Razorpay payment order for guest checkout
 export async function POST(request: NextRequest) {
@@ -24,14 +20,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
     }
 
-    if (!deliveryOption || !["CUSTOMER_PICKUP", "DELHI", "OUTSIDE_DELHI"].includes(deliveryOption)) {
+    if (!deliveryOption || !["CUSTOMER_PICKUP", "HOME_DELIVERY"].includes(deliveryOption)) {
       return NextResponse.json({ error: "Invalid delivery option" }, { status: 400 });
     }
 
     // ── Stock validation BEFORE creating payment order ──
     const stockIssues: { name: string; requested: number; available: number }[] = [];
 
-    // Calculate total securely from actual DB records
+    // Calculate total securely from actual DB records (no delivery charge — we don't handle delivery fees)
     let itemsTotal = 0;
     for (const item of cartItems) {
       const product = await prisma.product.findUnique({
@@ -74,12 +70,20 @@ export async function POST(request: NextRequest) {
       }, { status: 409 });
     }
 
-    // Add delivery charge
-    const deliveryCharge = DELIVERY_CHARGES[deliveryOption] ?? 0;
-    const total = itemsTotal + deliveryCharge;
+    // Total = items only (no delivery charge — we don't handle delivery fees)
+    const total = itemsTotal;
 
     // Razorpay expects amount in paise (subunit)
     const amountInPaise = Math.round(total * 100);
+
+    // Bulk order guard — orders at or above threshold must use WhatsApp flow
+    if (amountInPaise >= BULK_THRESHOLD) {
+      return NextResponse.json({
+        error: "Orders above the bulk threshold use WhatsApp payment. Please use the bulk order flow.",
+        isBulk: true,
+      }, { status: 400 });
+    }
+
     const receipt = `rcpt_guest_${Date.now()}`;
 
     const order = await razorpay.orders.create({

@@ -13,16 +13,33 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
-const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/products", label: "Products" },
-  { href: "/about", label: "About" },
-];
-
 export function SiteHeader() {
   const { isAuthenticated, user, loading, logout, refresh } = useAuth();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [hasOrders, setHasOrders] = useState(false);
+
+  // Check localStorage for guest orders list
+  useEffect(() => {
+    try {
+      const storedStr = localStorage.getItem("welcona_orders");
+      if (storedStr) {
+        const storedArray = JSON.parse(storedStr);
+        if (Array.isArray(storedArray) && storedArray.length > 0) {
+          setHasOrders(true);
+        }
+      }
+    } catch (err) {
+      console.error("Error reading welcona_orders in header:", err);
+    }
+  }, []);
+
+  const NAV_LINKS = [
+    { href: "/", label: "Home" },
+    { href: "/products", label: "Products" },
+    { href: "/about", label: "About" },
+    ...(hasOrders ? [{ href: "/my-orders", label: "My Orders" }] : []),
+  ];
 
   // Refresh session on route change to keep nav in sync
   useEffect(() => {

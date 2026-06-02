@@ -69,8 +69,7 @@ model ProductImage {
 // ─── DELIVERY OPTIONS ────────────────────────────────────────────────────────
 enum DeliveryOption {
   CUSTOMER_PICKUP  // Customer picks up from shop within 7 working days
-  DELHI            // Delivery within Delhi (₹150)
-  OUTSIDE_DELHI    // Delivery outside Delhi (₹250)
+  HOME_DELIVERY    // Arranged via third-party courier, customer pays delivery person directly
 }
 
 // ─── SIMPLIFIED ORDERS (STORES GUEST DETAILS INLINE) ────────────────────────
@@ -81,7 +80,6 @@ model Order {
   customerPhone   String
   shippingAddress String        // Aggregated shipping address string
   total           Float
-  paymentStatus   PaymentStatus @default(PENDING)
   paymentMethod   PaymentMethod
   
   // Delivery option tracking
@@ -99,14 +97,8 @@ model Order {
 }
 
 enum PaymentMethod {
-  ONLINE
-}
-
-enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  REFUNDED
+  ONLINE     // Razorpay — under bulk threshold
+  WHATSAPP   // Bulk order — above threshold, manual payment via WhatsApp
 }
 
 enum OrderStatus {

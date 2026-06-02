@@ -61,7 +61,6 @@ type Order = {
   id: string;
   total: number;
   status: string;
-  paymentStatus: string;
   paymentMethod: string;
   deliveryOption: string;
   deliveryCharge: number;
@@ -102,7 +101,6 @@ function useDebounce<T>(value: T, delay: number): T {
 async function fetchOrders(params: {
   page: number;
   status: string;
-  paymentStatus: string;
   query: string;
 }): Promise<AdminOrdersResponse> {
   const searchParams = new URLSearchParams({
@@ -112,9 +110,6 @@ async function fetchOrders(params: {
 
   if (params.status && params.status !== "all") {
     searchParams.set("status", params.status);
-  }
-  if (params.paymentStatus && params.paymentStatus !== "all") {
-    searchParams.set("paymentStatus", params.paymentStatus);
   }
   if (params.query) {
     searchParams.set("q", params.query);
@@ -131,7 +126,6 @@ async function fetchOrders(params: {
 async function updateOrderStatus(data: {
   orderId: string;
   status?: string;
-  paymentStatus?: string;
 }) {
   const res = await fetch("/api/admin/orders", {
     method: "PATCH",
@@ -169,21 +163,6 @@ function getStatusColor(status: string) {
   }
 }
 
-function getPaymentStatusColor(status: string) {
-  switch (status) {
-    case "COMPLETED":
-      return "bg-emerald-600 text-white";
-    case "PENDING":
-      return "bg-amber-500 text-white";
-    case "FAILED":
-      return "bg-red-500 text-white";
-    case "REFUNDED":
-      return "bg-purple-500 text-white";
-    default:
-      return "bg-muted-foreground text-white";
-  }
-}
-
 const STATUS_OPTIONS = [
   { value: "all", label: "All Statuses" },
   { value: "PENDING", label: "Pending" },
@@ -193,26 +172,17 @@ const STATUS_OPTIONS = [
   { value: "CANCELLED", label: "Cancelled" },
 ];
 
-const PAYMENT_STATUS_OPTIONS = [
-  { value: "all", label: "All Payments" },
-  { value: "PENDING", label: "Pending" },
-  { value: "COMPLETED", label: "Completed" },
-  { value: "FAILED", label: "Failed" },
-  { value: "REFUNDED", label: "Refunded" },
-];
-
 export function OrdersClient() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("all");
-  const [paymentStatus, setPaymentStatus] = useState("all");
   const [searchInput, setSearchInput] = useState("");
   const debouncedQuery = useDebounce(searchInput, 300);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["admin-orders", page, status, paymentStatus, debouncedQuery],
+    queryKey: ["admin-orders", page, status, debouncedQuery],
     queryFn: () =>
-      fetchOrders({ page, status, paymentStatus, query: debouncedQuery }),
+      fetchOrders({ page, status, query: debouncedQuery }),
   });
 
   const updateMutation = useMutation({
@@ -232,10 +202,6 @@ export function OrdersClient() {
 
   const handleStatusChange = (orderId: string, newStatus: string) => {
     updateMutation.mutate({ orderId, status: newStatus });
-  };
-
-  const handlePaymentStatusChange = (orderId: string, newPaymentStatus: string) => {
-    updateMutation.mutate({ orderId, paymentStatus: newPaymentStatus });
   };
 
   return (
@@ -292,25 +258,6 @@ export function OrdersClient() {
                   ))}
                 </SelectContent>
               </Select>
-              
-              <Select
-                value={paymentStatus}
-                onValueChange={(v) => {
-                  setPaymentStatus(v);
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue placeholder="Payment" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_STATUS_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </CardHeader>
@@ -325,7 +272,6 @@ export function OrdersClient() {
               <TableHead>Total</TableHead>
               <TableHead>Delivery</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Payment</TableHead>
               <TableHead>Date</TableHead>
               <TableHead className="w-12.5"></TableHead>
             </TableRow>
@@ -333,19 +279,19 @@ export function OrdersClient() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                   Loading orders...
                 </TableCell>
               </TableRow>
             ) : isError ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center text-destructive">
+                <TableCell colSpan={8} className="h-24 text-center text-destructive">
                   Failed to load orders
                 </TableCell>
               </TableRow>
             ) : orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   No orders found
                 </TableCell>
               </TableRow>
@@ -356,11 +302,18 @@ export function OrdersClient() {
                   order.orderItems[0]?.product.images[0];
 
                 return (
-                  <TableRow key={order.id}>
+                  <TableRow key={order.id} className={order.paymentMethod === "WHATSAPP" ? "bg-amber-500/5 hover:bg-amber-500/10" : ""}>
                     <TableCell>
-                      <span className="font-mono text-xs">
-                        #{order.id.slice(0, 8)}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className="font-mono text-xs font-bold">
+                          #{order.id.slice(0, 8)}
+                        </span>
+                        {order.paymentMethod === "WHATSAPP" && (
+                          <span className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200">
+                            🏆 BULK
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div>
@@ -411,23 +364,13 @@ export function OrdersClient() {
                       {formatPrice(order.total)}
                     </TableCell>
                     <TableCell>
-                      <span className="text-xs font-medium">
-                        {(order.deliveryOption || "").replace(/_/g, " ")}
+                      <span className="text-xs font-semibold">
+                        {order.deliveryOption === "CUSTOMER_PICKUP" ? "Customer Pickup" : "Home Delivery"}
                       </span>
-                      {order.deliveryCharge > 0 && (
-                        <span className="block text-[10px] text-muted-foreground">₹{order.deliveryCharge}</span>
-                      )}
                     </TableCell>
                     <TableCell>
                       <Badge className={`rounded-full text-[10px] ${getStatusColor(order.status)}`}>
                         {order.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={`rounded-full text-[10px] ${getPaymentStatusColor(order.paymentStatus)}`}
-                      >
-                        {order.paymentStatus}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
@@ -466,20 +409,6 @@ export function OrdersClient() {
                                 {s === "CANCELLED" && <XCircle className="mr-2 h-3 w-3" />}
                                 {s === "PENDING" && <Clock className="mr-2 h-3 w-3" />}
                                 Mark as {s.toLowerCase()}
-                              </DropdownMenuItem>
-                            ))}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem disabled className="text-xs font-medium">
-                            Update Payment
-                          </DropdownMenuItem>
-                          {["PENDING", "COMPLETED", "FAILED", "REFUNDED"]
-                            .filter((s) => s !== order.paymentStatus)
-                            .map((s) => (
-                              <DropdownMenuItem
-                                key={s}
-                                onClick={() => handlePaymentStatusChange(order.id, s)}
-                              >
-                                Mark payment {s.toLowerCase()}
                               </DropdownMenuItem>
                             ))}
                         </DropdownMenuContent>

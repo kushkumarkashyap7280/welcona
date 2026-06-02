@@ -1,31 +1,21 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useRef } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { motion, type Variants } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ChevronLeft,
   ChevronRight,
   ShoppingBag,
   AlertCircle,
   Flame,
-  Sparkles,
-  Package,
   Layers,
   ArrowRight,
+  Package
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { ProductCard, type SharedProduct } from "@/components/users/ProductCard";
-
-// ─── Tab icons ─────────────────────────────────────────────────────────────────
-const TAB_ICONS: Record<string, React.ElementType> = {
-  deals: Flame,
-  new: Sparkles,
-  bulk: Layers,
-  all: Package,
-};
 
 // ─── Skeleton Card ────────────────────────────────────────────────────────────
 function SkeletonCard() {
@@ -42,26 +32,27 @@ function SkeletonCard() {
   );
 }
 
-// ─── HotTabs Component ────────────────────────────────────────────────────────
-interface Props {
-  tabs: any[];
+// ─── Category Row Component ───────────────────────────────────────────────────
+interface CategoryRowProps {
+  tab: {
+    id: string;
+    label: string;
+    apiFilter: string;
+  };
 }
 
-export function HotTabs({ tabs }: Props) {
-  const [activeTabId, setActiveTabId] = useState(tabs[0]?.id ?? "all");
-  const tabsRef = useRef<HTMLDivElement>(null);
+export function CategoryRow({ tab }: CategoryRowProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const activeTab = tabs.find((t) => t.id === activeTabId) ?? tabs[0];
-  
-  // Build the correct API URL based on active tab to load 10 items on demand
+  // Build the correct API URL to load products (up to 10 items to select 6)
   let apiParams = "pageSize=10";
-  if (activeTab?.apiFilter) {
-    apiParams += `&${activeTab.apiFilter}`;
+  if (tab.apiFilter) {
+    apiParams += `&${tab.apiFilter}`;
   }
   const apiUrl = `/api/products?${apiParams}`;
 
   const { data, isLoading, isError } = useQuery<{ items: SharedProduct[]; total: number }>({
-    queryKey: ["hot-tabs-products", activeTabId, apiUrl],
+    queryKey: ["category-feed-products", tab.id, apiUrl],
     queryFn: async () => {
       const res = await fetch(apiUrl);
       if (!res.ok) throw new Error("Failed to fetch");
@@ -70,143 +61,155 @@ export function HotTabs({ tabs }: Props) {
     staleTime: 5 * 60 * 1000,
   });
 
-  const scrollTabs = (dir: "left" | "right") => {
-    if (tabsRef.current) {
-      tabsRef.current.scrollBy({ left: dir === "left" ? -200 : 200, behavior: "smooth" });
-    }
-  };
-
-  // Determine standard redirection link based on selected active tab
+  // Determine standard redirection link based on selected active category
   let viewAllLink = "/products";
-  if (activeTabId === "deals") {
+  if (tab.id === "deals") {
     viewAllLink = "/products?sort=discount";
-  } else if (activeTabId === "bulk") {
+  } else if (tab.id === "bulk") {
     viewAllLink = "/products?wholesale=true";
-  } else if (activeTab?.apiFilter?.includes("categoryId")) {
-    const catId = activeTab.apiFilter.split("categoryId=")[1];
+  } else if (tab.apiFilter?.includes("categoryId")) {
+    const catId = tab.apiFilter.split("categoryId=")[1];
     viewAllLink = `/products?categoryId=${catId}`;
   }
 
-  // Handle display logic: Max 10 items total. If total > 9, show 9 items and a "View More" card.
-  const displayItems = data?.items ? data.items.slice(0, 9) : [];
-  const hasMoreThanNine = data?.items && data.items.length >= 10;
+  const displayItems = data?.items ? data.items.slice(0, 6) : [];
+
+  const scrollCarousel = (dir: "left" | "right") => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ left: dir === "left" ? -280 : 280, behavior: "smooth" });
+    }
+  };
+
+  // If there's no data and not loading, hide empty categories
+  if (!isLoading && !isError && !data?.items?.length) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Category Row Header */}
+      <div className="flex items-end justify-between border-b border-border/40 pb-3">
+        <div>
+          <h3 className="text-xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
+            {tab.id === "deals" && <Flame className="h-5 w-5 text-amber-500 animate-pulse" />}
+            {tab.id === "bulk" && <Layers className="h-5 w-5 text-amber-500" />}
+            {tab.id !== "deals" && tab.id !== "bulk" && <Package className="h-5 w-5 text-muted-foreground" />}
+            {tab.label}
+          </h3>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Link
+            href={viewAllLink}
+            className="text-xs font-bold text-primary hover:underline transition-colors flex items-center gap-0.5 mr-2"
+          >
+            Explore All <ArrowRight className="h-3 w-3" />
+          </Link>
+          <div className="hidden sm:flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => scrollCarousel("left")}
+              className="h-7 w-7 rounded-full shadow-sm hover:bg-muted"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => scrollCarousel("right")}
+              className="h-7 w-7 rounded-full shadow-sm hover:bg-muted"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Product carousel / loading / error */}
+      {isLoading ? (
+        <div className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-none sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-6 w-full">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="w-[240px] sm:w-auto shrink-0 snap-start flex flex-col">
+              <SkeletonCard />
+            </div>
+          ))}
+        </div>
+      ) : isError ? (
+        <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground bg-card/25 rounded-2xl border border-dashed border-border/85">
+          <AlertCircle className="h-8 w-8 text-destructive/60" />
+          <p className="text-xs font-semibold">Failed to load {tab.label} items.</p>
+        </div>
+      ) : (
+        <div 
+          ref={containerRef}
+          className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-none sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-6 w-full scroll-smooth"
+        >
+          {/* Display exactly 6 products */}
+          {displayItems.map((item, i) => (
+            <div key={item.id} className="w-[240px] sm:w-auto shrink-0 snap-start flex flex-col">
+              <ProductCard item={item} index={i} />
+            </div>
+          ))}
+
+          {/* Unconditionally Render 7th Card: View More card at the end of the row */}
+          <div className="w-[240px] sm:w-auto shrink-0 snap-start flex flex-col min-h-[350px] sm:min-h-0">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ y: -6, transition: { duration: 0.2 } }}
+              className="group relative flex flex-col items-center justify-center text-center w-full h-full p-6 bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-3xl hover:border-primary/45 shadow-sm hover:shadow-xl transition-all duration-300 flex-1"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 shadow-inner mb-4">
+                <ArrowRight className="h-6 w-6" />
+              </div>
+              <h4 className="text-sm font-bold text-foreground">Explore All</h4>
+              <p className="text-[10px] text-muted-foreground max-w-[150px] mt-1 mb-4">
+                View complete range of premium {tab.label} fittings.
+              </p>
+              <Link href={viewAllLink} className="w-full">
+                <Button size="sm" className="w-full rounded-full font-bold shadow-md text-xs">
+                  View More
+                </Button>
+              </Link>
+            </motion.div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main HotTabs (Multi-Category Feed) Component ─────────────────────────────
+interface Props {
+  tabs: any[];
+}
+
+export function HotTabs({ tabs }: Props) {
+  // Filter out "all" because we want distinct categories/offers rows down the page
+  const rows = tabs.filter((t) => t.id !== "all");
 
   return (
     <section className="py-16 border-b border-border/50 bg-background/50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section header */}
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-1">
-              Browse & Shop
-            </p>
-            <h2 className="text-3xl font-bold tracking-tight">Our Premium Collections</h2>
-          </div>
-          <Link
-            href={viewAllLink}
-            className="text-sm font-semibold text-primary hover:underline transition-colors flex items-center gap-1"
-          >
-            View All <ChevronRight className="h-4 w-4" />
-          </Link>
+        {/* Main Section Header */}
+        <div className="mb-12">
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-1">
+            Browse & Shop
+          </p>
+          <h2 className="text-3xl font-black tracking-tight text-foreground uppercase">
+            Our Premium Collections
+          </h2>
+          <p className="text-sm text-muted-foreground mt-2 max-w-xl">
+            Explore our curated, top-selling lines of premium luxury bath fittings direct from the factory floor.
+          </p>
         </div>
 
-        {/* Tabs row */}
-        <div className="relative flex items-center gap-2 mb-10">
-          <Button
-            variant="outline"
-            size="icon-sm"
-            onClick={() => scrollTabs("left")}
-            className="shrink-0 rounded-full shadow-sm hover:bg-muted"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-
-          <div
-            ref={tabsRef}
-            className="flex gap-2 overflow-x-auto scrollbar-none scroll-smooth flex-1 py-1"
-          >
-            {tabs.map((tab) => {
-              const Icon = TAB_ICONS[tab.id] ?? Package;
-              const isActive = tab.id === activeTabId;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTabId(tab.id)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 shrink-0 border shadow-sm",
-                    isActive
-                      ? "bg-primary text-primary-foreground border-primary scale-102 shadow-md"
-                      : "bg-card text-muted-foreground border-border hover:border-primary/45 hover:text-foreground hover:bg-muted/10"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <Button
-            variant="outline"
-            size="icon-sm"
-            onClick={() => scrollTabs("right")}
-            className="shrink-0 rounded-full shadow-sm hover:bg-muted"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+        {/* Categories sequential feeds */}
+        <div className="space-y-16">
+          {rows.map((row) => (
+            <CategoryRow key={row.id} tab={row} />
+          ))}
         </div>
-
-        {/* Product grid */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 animate-fade-in">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <SkeletonCard key={i} />
-            ))}
-          </div>
-        ) : isError ? (
-          <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
-            <AlertCircle className="h-10 w-10 text-destructive/60 animate-bounce" />
-            <p className="text-sm font-medium">Failed to load products.</p>
-            <Link href="/products" className="text-xs text-primary underline underline-offset-4 hover:text-primary/80">
-              Browse all products instead
-            </Link>
-          </div>
-        ) : !data?.items.length ? (
-          <div className="flex flex-col items-center justify-center gap-4 py-20 text-muted-foreground border-2 border-dashed border-border/80 bg-card/40 rounded-3xl animate-fade-in">
-            <ShoppingBag className="h-12 w-12 opacity-30 text-primary" />
-            <p className="text-sm font-semibold">No products found in this category.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {/* Display products */}
-            {displayItems.map((item, i) => (
-              <ProductCard key={item.id} item={item} index={i} />
-            ))}
-
-            {/* Render 10th Card: View More card if there are more than 9 products */}
-            {hasMoreThanNine && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                whileHover={{ y: -6, transition: { duration: 0.2 } }}
-                className="group relative flex flex-col items-center justify-center text-center w-full min-h-[300px] p-6 bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-3xl hover:border-primary/45 shadow-sm hover:shadow-xl transition-all duration-300"
-              >
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 shadow-inner mb-6">
-                  <ArrowRight className="h-8 w-8" />
-                </div>
-                <h3 className="text-lg font-bold text-foreground">View More Products</h3>
-                <p className="text-xs text-muted-foreground max-w-[180px] mt-2 mb-6">
-                  Explore our complete range of premium {activeTab?.label} items.
-                </p>
-                <Link href={viewAllLink} className="w-full">
-                  <Button className="w-full rounded-full font-semibold shadow-md">
-                    Explore All
-                  </Button>
-                </Link>
-              </motion.div>
-            )}
-          </div>
-        )}
       </div>
     </section>
   );

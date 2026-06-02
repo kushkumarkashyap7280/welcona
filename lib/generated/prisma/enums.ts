@@ -11,28 +11,18 @@
 
 export const DeliveryOption = {
   CUSTOMER_PICKUP: 'CUSTOMER_PICKUP',
-  DELHI: 'DELHI',
-  OUTSIDE_DELHI: 'OUTSIDE_DELHI'
+  HOME_DELIVERY: 'HOME_DELIVERY'
 } as const
 
 export type DeliveryOption = (typeof DeliveryOption)[keyof typeof DeliveryOption]
 
 
 export const PaymentMethod = {
-  ONLINE: 'ONLINE'
+  ONLINE: 'ONLINE',
+  WHATSAPP: 'WHATSAPP'
 } as const
 
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod]
-
-
-export const PaymentStatus = {
-  PENDING: 'PENDING',
-  COMPLETED: 'COMPLETED',
-  FAILED: 'FAILED',
-  REFUNDED: 'REFUNDED'
-} as const
-
-export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]
 
 
 export const OrderStatus = {

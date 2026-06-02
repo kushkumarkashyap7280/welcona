@@ -16,6 +16,8 @@ import {
   Phone,
   Truck,
   User,
+  Trophy,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
@@ -47,7 +49,6 @@ type Order = {
   id: string;
   total: number;
   status: string;
-  paymentStatus: string;
   paymentMethod: string;
   shippingAddress: string;
   deliveryOption: string;
@@ -79,16 +80,6 @@ function getStatusColor(status: string) {
     case "SHIPPED": return "bg-indigo-500 text-white";
     case "DELIVERED": return "bg-emerald-600 text-white";
     case "CANCELLED": return "bg-red-500 text-white";
-    default: return "bg-muted-foreground text-white";
-  }
-}
-
-function getPaymentStatusColor(status: string) {
-  switch (status) {
-    case "COMPLETED": return "bg-emerald-600 text-white";
-    case "PENDING": return "bg-amber-500 text-white";
-    case "FAILED": return "bg-red-500 text-white";
-    case "REFUNDED": return "bg-purple-500 text-white";
     default: return "bg-muted-foreground text-white";
   }
 }
@@ -166,7 +157,6 @@ function StatusTimeline({ status }: { status: string }) {
 async function updateOrderStatus(data: {
   orderId: string;
   status?: string;
-  paymentStatus?: string;
 }) {
   const res = await fetch("/api/admin/orders", {
     method: "PATCH",
@@ -261,11 +251,41 @@ export default function AdminOrderDetailPage() {
           <Badge className={`rounded-full text-[11px] ${getStatusColor(order.status)}`}>
             {order.status}
           </Badge>
-          <Badge className={`rounded-full text-[11px] ${getPaymentStatusColor(order.paymentStatus)}`}>
-            {order.paymentStatus === "COMPLETED" ? "Paid" : order.paymentStatus}
-          </Badge>
         </div>
       </div>
+
+      {/* Wholesale bulk order warning callout */}
+      {order.paymentMethod === "WHATSAPP" && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/20 p-5 space-y-4">
+          <div className="flex items-start gap-3">
+            <Trophy className="h-6 w-6 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5 animate-bounce" />
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-amber-900 dark:text-amber-400">
+                🏆 Wholesale/Bulk Order (WhatsApp Flow)
+              </h4>
+              <p className="text-xs text-amber-800 dark:text-amber-300 leading-normal">
+                This is a guest bulk order exceeding the threshold. Stock has <strong>not</strong> been decremented yet and payment is pending. 
+                Verify offline payment details first. When ready, confirm the order using the atomic stock-allocation button below.
+              </p>
+            </div>
+          </div>
+          {order.status === "PENDING" && (
+            <div className="flex justify-end pt-1">
+              <Button
+                disabled={mutation.isPending}
+                className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700 border border-amber-500 font-semibold"
+                onClick={() => mutation.mutate({ orderId: order.id, status: "CONFIRMED" })}
+              >
+                {mutation.isPending ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Allocating & Confirming...</>
+                ) : (
+                  <><CheckCircle2 className="mr-2 h-4 w-4" />Confirm Wholesale Order & Allocate Stock</>
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Status timeline */}
       <div className="rounded-xl border border-border/70 bg-card/90 p-6">
@@ -295,27 +315,6 @@ export default function AdminOrderDetailPage() {
                   </SelectItem>
                 )
               )}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium">Payment Status</span>
-          <Select
-            value={order.paymentStatus}
-            onValueChange={(v) =>
-              mutation.mutate({ orderId: order.id, paymentStatus: v })
-            }
-            disabled={mutation.isPending}
-          >
-            <SelectTrigger className="w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {["PENDING", "COMPLETED", "FAILED", "REFUNDED"].map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s.charAt(0) + s.slice(1).toLowerCase()}
-                </SelectItem>
-              ))}
             </SelectContent>
           </Select>
         </div>
@@ -417,19 +416,23 @@ export default function AdminOrderDetailPage() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Option</span>
-                <span className="font-medium">
-                  {(order.deliveryOption || "").replace(/_/g, " ")}
+                <span className="font-semibold">
+                  {order.deliveryOption === "CUSTOMER_PICKUP" ? "Customer Pickup" : "Home Delivery"}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Charge</span>
                 <span className="font-medium">
-                  {order.deliveryCharge > 0 ? formatPrice(order.deliveryCharge) : "FREE (Pickup)"}
+                  {order.deliveryOption === "CUSTOMER_PICKUP" ? "FREE" : "Arranged Separately"}
                 </span>
               </div>
-              {order.deliveryOption === "CUSTOMER_PICKUP" && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                  ⚠ Customer must pick up within 7 working days (Mon–Sat, 9 AM – 7 PM)
+              {order.deliveryOption === "CUSTOMER_PICKUP" ? (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                  ⚠️ Customer will arrange pickup from our warehouse (Mon–Sat, 9 AM – 7 PM).
+                </p>
+              ) : (
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">
+                  ℹ️ Arrange Porter/courier. Customer pays the courier boy directly.
                 </p>
               )}
             </div>
@@ -441,19 +444,9 @@ export default function AdminOrderDetailPage() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Method</span>
-                <span className="font-medium">
-                  {order.paymentMethod.replace(/_/g, " ")}
+                <span className="font-semibold text-xs">
+                  {order.paymentMethod === "WHATSAPP" ? "🏆 WhatsApp Wholesale" : "Razorpay Online"}
                 </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Status</span>
-                <Badge
-                  className={`rounded-full text-[10px] ${getPaymentStatusColor(order.paymentStatus)}`}
-                >
-                  {order.paymentStatus === "COMPLETED"
-                    ? "Paid"
-                    : order.paymentStatus}
-                </Badge>
               </div>
               {order.razorpayOrderId && (
                 <div className="flex justify-between gap-4">
