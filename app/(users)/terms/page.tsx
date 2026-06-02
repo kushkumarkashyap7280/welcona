@@ -30,23 +30,25 @@ export default function TermsPage() {
         <div className="rounded-xl border border-border/70 bg-card/90 p-5">
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">3</span>
-            Delivery &amp; Pickup Policy
+            Delivery &amp; Pickup Policy (NOT FREE)
           </h2>
-          <p className="mt-2">
-            Welcona does not operate an in-house delivery service or charge shipping fees. All delivery arrangements must be discussed and understood BEFORE placing your order. We offer two collection options:
+          <p className="mt-2 text-foreground font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/5 p-3 rounded-lg border border-amber-200 dark:border-amber-900/40 leading-relaxed">
+            ⚠️ NOTICE: Delivery is NOT free. Welcona charges strictly for products, not for delivery. However, delivery costs must be paid. Whether you pick up the items yourself or ask us to arrange local transport (e.g. Porter/Dunzo) on your behalf, you are solely responsible for paying the delivery charges directly to the delivery agent or driver. Delivery charges are calculated dynamically as per Quantity, Weight, Size &amp; Distance.
+          </p>
+          <p className="mt-3">
+            All delivery arrangements must be discussed, coordinated, and fully understood BEFORE placing your order. We offer two collection/logistics options:
           </p>
           <ul className="mt-3 space-y-3.5 ml-1">
             <li className="flex items-start gap-2">
               <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
               <span>
-                <strong className="text-foreground">Customer Warehouse Pickup:</strong> You can choose to collect your items directly from our premises within 7 working days (Mon–Sat, 9 AM – 7 PM). Items not collected within 7 days will be returned to inventory and payments are <strong className="text-foreground">not refundable</strong>.
+                <strong className="text-foreground">Customer Warehouse Pickup:</strong> You can choose to collect your items directly from our premises within 7 working days (Mon–Sat, 9 AM – 7 PM). Any local loading, packing or delivery driver hire costs are payable by you directly to the handler as per Quantity, Weight, Size &amp; Distance. Items not collected within 7 days will be returned to inventory and payments are <strong className="text-foreground">not refundable</strong>.
               </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
               <span>
-                <strong className="text-foreground">Third-Party Courier (Porter / Dunzo / Courier):</strong> We can assist you by booking a delivery service (e.g., Porter) on your behalf, or you can book one yourself. 
-                All shipping charges are paid <strong className="text-foreground">cash-on-delivery directly to the courier boy/driver</strong>. Welcona does not calculate, collect, or assume liability for third-party shipping charges or delays.
+                <strong className="text-foreground">Third-Party Courier booking:</strong> We can assist you by booking a delivery service (e.g., Porter) on your behalf, or you can book one yourself. All shipping charges are paid <strong className="text-foreground">cash-on-delivery directly to the courier boy/driver</strong> as per Quantity, Weight, Size &amp; Distance. Welcona does not collect, calculate, or assume liability for third-party shipping charges or delays.
               </span>
             </li>
           </ul>

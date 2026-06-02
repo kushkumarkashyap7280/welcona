@@ -109,7 +109,7 @@ export function ProductCard({ item, index }: { item: SharedProduct; index: numbe
     >
       <Link href={`/products/${item.id}`} className="flex-1 flex flex-col">
         {/* Product Image Panel */}
-        <div className="relative aspect-square sm:aspect-[1.35/1] w-full bg-muted overflow-hidden group">
+        <div className="relative aspect-square w-full bg-muted overflow-hidden group">
           {primaryImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img

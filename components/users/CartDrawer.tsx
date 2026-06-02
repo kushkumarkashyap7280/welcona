@@ -44,8 +44,8 @@ const WHATSAPP_NUMBER = "919625711655";
 const BULK_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BULK_THRESHOLD || "10000");
 
 const DELIVERY_OPTIONS: { value: DeliveryOption; label: string; desc: string; icon: typeof Store; contactRequired?: boolean }[] = [
-  { value: "CUSTOMER_PICKUP", label: "Customer Pickup", desc: "Pick up from our shop within 7 working days (Mon–Sat, 9 AM – 7 PM). Otherwise product returned, money not refunded.", icon: Store },
-  { value: "HOME_DELIVERY", label: "Home Delivery", desc: "We arrange delivery via third-party courier. You pay the delivery person directly.", icon: Truck, contactRequired: true },
+  { value: "CUSTOMER_PICKUP", label: "Customer Pickup", desc: "Pick up from our shop within 7 working days. Any transport/loading hire costs paid by you directly to the agent as per Quantity, Weight, Size & Distance.", icon: Store },
+  { value: "HOME_DELIVERY", label: "Home Delivery", desc: "Coordinated via third-party courier (e.g. Porter). You pay the courier agent/driver directly as per Quantity, Weight, Size & Distance.", icon: Truck, contactRequired: true },
 ];
 
 export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -609,7 +609,7 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium">{opt.label}</span>
                             <span className="text-xs font-bold text-primary">
-                              {opt.value === "CUSTOMER_PICKUP" ? "FREE" : "Arranged Separately"}
+                              As per Quantity, Weight, Size &amp; Distance
                             </span>
                           </div>
                           <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{opt.desc}</p>
@@ -703,8 +703,8 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Delivery</span>
-                  <span className="font-medium text-xs">
-                    {deliveryOption === "CUSTOMER_PICKUP" ? "FREE" : "Arranged Separately (Pay Boy)"}
+                  <span className="font-semibold text-[10px] text-right leading-tight max-w-[180px]">
+                    As per Quantity, Weight, Size &amp; Distance (Payable directly to agent/driver)
                   </span>
                 </div>
                 <div className="border-t pt-2 flex justify-between font-bold text-base">

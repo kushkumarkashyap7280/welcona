@@ -423,7 +423,7 @@ export default function AdminOrderDetailPage() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Charge</span>
                 <span className="font-medium">
-                  {order.deliveryOption === "CUSTOMER_PICKUP" ? "FREE" : "Arranged Separately"}
+                  {order.deliveryOption === "CUSTOMER_PICKUP" ? "Warehouse Pickup" : "Arranged Separately"}
                 </span>
               </div>
               {order.deliveryOption === "CUSTOMER_PICKUP" ? (
