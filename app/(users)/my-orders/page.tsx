@@ -243,7 +243,7 @@ export default function MyOrdersPage() {
                       onClick={() => toggleExpand(order.id)}
                       className={`cursor-pointer border-b border-border/40 hover:bg-muted/40 transition-colors ${
                         order.paymentMethod === "WHATSAPP" && order.status === "PENDING"
-                          ? "bg-amber-500/[0.02]"
+                          ? "bg-amber-500/2"
                           : ""
                       }`}
                     >
@@ -275,7 +275,7 @@ export default function MyOrdersPage() {
                                       src={img.image}
                                       alt=""
                                       className="h-full w-full object-cover"
-                                      fallbackSize="xs"
+                                      fallbackSize="sm"
                                     />
                                   ) : (
                                     <div className="flex h-full w-full items-center justify-center">
@@ -317,7 +317,7 @@ export default function MyOrdersPage() {
                           <div className="w-full max-w-[calc(100vw-36px)] sm:max-w-none overflow-hidden space-y-4 animate-in fade-in duration-300">
                             {/* Products detailed grid */}
                             <div className="space-y-2 border border-border/50 rounded-lg p-2.5 bg-card w-full overflow-hidden">
-                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-1 flex items-center gap-1">
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-1 items-center gap-1">
                                 <FileText className="h-3.5 w-3.5" /> Ordered Products Details
                               </span>
                               {order.orderItems.map((item) => {
@@ -346,10 +346,10 @@ export default function MyOrdersPage() {
                             {/* Shipping Log Coordinates */}
                             <div className="flex flex-col sm:flex-row gap-4 border border-border/50 rounded-lg p-3 bg-card text-xs w-full overflow-hidden">
                               <div className="flex-1 space-y-1 min-w-0">
-                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block flex items-center gap-1">
+                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block items-center gap-1">
                                   <MapPin className="h-3.5 w-3.5 shrink-0" /> Shipping &amp; Logistics
                                 </span>
-                                <p className="font-semibold text-foreground mt-0.5 break-words whitespace-normal leading-normal">
+                                <p className="font-semibold text-foreground mt-0.5 wrap-break-word whitespace-normal leading-normal">
                                   {order.deliveryOption === "CUSTOMER_PICKUP" 
                                     ? "📍 Warehouse Pickup (Coordinated)" 
                                     : `🚚 Home Delivery Address: ${order.shippingAddress}`}
