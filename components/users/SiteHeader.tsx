@@ -38,7 +38,7 @@ export function SiteHeader() {
     { href: "/", label: "Home" },
     { href: "/products", label: "Products" },
     { href: "/about", label: "About" },
-    ...(hasOrders ? [{ href: "/my-orders", label: "My Orders" }] : []),
+    // ...(hasOrders ? [{ href: "/my-orders", label: "My Orders" }] : []),
   ];
 
   // Refresh session on route change to keep nav in sync
