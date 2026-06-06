@@ -15,17 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: {
-    default: "Welcona",
-    template: "%s | Welcona",
-  },
-  description:
-    "Welcona luxury bath fittings — premium design, modern engineering, and reliable quality.",
-  manifest: "/manifest.webmanifest",
-  icons: {
-    icon: "/icon",
-    apple: "/apple-icon",
-  },
+  title: "Welcona",
 };
 
 export const viewport: Viewport = {

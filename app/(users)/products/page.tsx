@@ -1,10 +1,7 @@
 import { Suspense } from "react";
 import { ProductCatalogClient } from "@/components/users/ProductCatalogClient";
 
-export const metadata = {
-  title: "Products — Welcona Bath Fittings",
-  description: "Browse Welcona's full collection of luxury bath fittings. Filter by category, price, tags and more.",
-};
+
 
 function CatalogSkeleton() {
   return (
