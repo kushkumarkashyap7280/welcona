@@ -7,6 +7,11 @@ import { CategorySection } from "@/components/users/home/CategorySection";
 import { StatsSection } from "@/components/users/home/StatsSection";
 import prisma from "@/lib/db";
 
+export const metadata = {
+  title: "Welcona — Luxury Bath Fittings, Factory Direct",
+  description:
+    "Discover Welcona's curated collection of premium showers, taps, and bath accessories. Factory-direct pricing, 2-year warranty, pan India delivery.",
+};
 
 
 const HERO_CONFIG = {

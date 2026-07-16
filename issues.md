@@ -1,8 +1,0 @@
-1. testing 1 :
-
-i had total 26 stock of a prodocut .. now i tried to add in frontend to cart 2-3 right , what i did behind 
-the scene is that i updated the stock of product to 0 means no stock is left but in frontend since i alredy added to cart that item it is still showing that item in cart without showing whether it is out of stock or not , this let user payement done succdessully but at time of oder gernation after successfull payment it fails either freeze or show red way that our of stock in cart so user can remove it and before payement bill creates from backend it should need to verify if stock quantity ofproudct  that user wnat suppose 7 of product A  whether aviable  7 or not before going to payment bill creation , in checkout page it should need to verify again ... and so in last no issue with the stock and payemtn we dont want that stock is unaivable but user payemnt done  we dont want taht ...  and make sure each payment should need to atomic and stock , means stock checking of each produt with the amount user want should be done before payment creation or payment initiation .. 
-
-make this checking in every stage like from cart to checkout and before bill creation of payemnt in backend it should check at every stage so .. 
-
-i dont want that two user want 5 , 6 stock and avialbiity is 7 stock but who pay when .. if they do simulataneoly it should reject one and if already payment done it shoudl not allow to create order and stock deduct from that user order ... i mean it should be sync across all the platform
