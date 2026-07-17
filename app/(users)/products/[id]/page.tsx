@@ -73,31 +73,31 @@ export async function generateMetadata({ params }: ProductDetailPageProps): Prom
     };
   }
 
-  const description = buildProductDescription(product);
-  const primaryImage = product.images[0]?.image
-    ? normalizeImageSrc(product.images[0].image)
-    : undefined;
+  // const description = buildProductDescription(product);
+  // const primaryImage = product.images[0]?.image
+  //   ? normalizeImageSrc(product.images[0].image)
+  //   : undefined;
 
   return {
-    title: product.name,
-    description,
-    alternates: {
-      canonical: pageUrl,
-    },
-    openGraph: {
-      title: product.name,
-      description,
-      url: pageUrl,
-      siteName: "Welcona",
-      type: "website",
-      images: primaryImage ? [{ url: primaryImage, alt: product.name }] : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: product.name,
-      description,
-      images: primaryImage ? [primaryImage] : undefined,
-    },
+    // title: product.name,
+    // description,
+    // alternates: {
+    //   canonical: pageUrl,
+    // },
+    // openGraph: {
+    //   title: product.name,
+    //   description,
+    //   url: pageUrl,
+    //   siteName: "Welcona",
+    //   type: "website",
+    //   images: primaryImage ? [{ url: primaryImage, alt: product.name }] : undefined,
+    // },
+    // twitter: {
+    //   card: "summary_large_image",
+    //   title: product.name,
+    //   description,
+    //   images: primaryImage ? [primaryImage] : undefined,
+    // },
   };
 }
 
