@@ -13,7 +13,7 @@ const prisma = new PrismaClient({
 
 const adminData: Prisma.AdminCreateInput[] = [
   {
-    email: "kush@welcona.com",
+    email: "testuser",
     password: "1234", // Will be replaced by hashed password
     fullName: "",
   },
